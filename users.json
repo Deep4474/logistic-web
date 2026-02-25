@@ -17,6 +17,36 @@
       "email": "newemail@test.com",
       "passwordHash": "pbkdf2_sha256$100000$afbf2c6ea5e6431ba34b998bd7dcd94c$f8e553c69817faa359074a7793da857fc10300e5f601077f8e15c8c1be08b81d",
       "registeredAt": "2026-02-25T00:59:51.338Z"
+    },
+    {
+      "name": "TestUser",
+      "email": "test1263594850@test.com",
+      "passwordHash": "pbkdf2_sha256$100000$84e1b7ee06523b0ad1dca83e8721cec2$d8e053c8058002be52b19e9fc2fbcc7f5ed5bbc3c27198560141bf32e6a6fae4",
+      "registeredAt": "2026-02-25T02:09:04.589Z"
+    },
+    {
+      "name": "TestUser",
+      "email": "test@example.com",
+      "passwordHash": "pbkdf2_sha256$100000$94d94228ea61a7c2b886817e1e5d5527$be948f3520e0f1c525b7b7a18f8dfbea66ee6886d04d31194969ced71b0e0397",
+      "registeredAt": "2026-02-25T02:40:51.804Z"
+    },
+    {
+      "name": "DemoUser",
+      "email": "demo@test.com",
+      "passwordHash": "pbkdf2_sha256$100000$a630f1cb9a0e4a74af62893b008267d9$ae7783fceca9544c45957d4f2567f71dee737829aa0c90e9cb572484e518888d",
+      "registeredAt": "2026-02-25T02:41:54.625Z"
+    },
+    {
+      "name": "TestUser1",
+      "email": "test1@gmail.com",
+      "passwordHash": "pbkdf2_sha256$100000$b84c93432d542751ff9cb90997ea3317$469636565cfb063ac517ab8a25a799e054cf8eceeae2121135a9db25d4c4e2b1",
+      "registeredAt": "2026-02-25T03:02:07.377Z"
+    },
+    {
+      "name": "LocalTest",
+      "email": "localtest@example.com",
+      "passwordHash": "pbkdf2_sha256$100000$4ef91aac50cad388c5a51d08d110b6ff$d317b5e6174ab054236f51f0ca7730051597b3e141e39ac2b0daf14613a603ca",
+      "registeredAt": "2026-02-25T03:13:28.239Z"
     }
   ]
 }

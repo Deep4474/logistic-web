@@ -64,8 +64,19 @@ app.use('/pictures', express.static(picturesDir));
 const EMAIL_USER = process.env.EMAIL_USER || process.env.EMAIL || 'ayomideoluniyi49@gmail.com';
 const EMAIL_PASS = process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || '';
 
+// Custom project API key loaded from environment
+const RND_API_KEY = process.env.RND_API_KEY || '';
+if (RND_API_KEY) {
+    console.log('RND_API_KEY loaded (length:', RND_API_KEY.length + ')');
+} else {
+    console.log('RND_API_KEY not set');
+}
+
 let transporter;
-if (process.env.SENDGRID_API_KEY) {
+// Allow disabling SendGrid explicitly (set DISABLE_SENDGRID=true in .env to force SMTP fallback)
+const disableSendgrid = String(process.env.DISABLE_SENDGRID || '').toLowerCase() === 'true';
+
+if (process.env.SENDGRID_API_KEY && !disableSendgrid) {
     // Use SendGrid SMTP relay (recommended on platforms that block direct SMTP)
     transporter = nodemailer.createTransport({
         host: 'smtp.sendgrid.net',
@@ -78,6 +89,9 @@ if (process.env.SENDGRID_API_KEY) {
     });
     console.log('Email transporter configured: SendGrid SMTP');
 } else {
+    if (process.env.SENDGRID_API_KEY && disableSendgrid) {
+        console.log('SENDGRID_API_KEY present but DISABLE_SENDGRID=true — using SMTP fallback');
+    }
     transporter = nodemailer.createTransport({
         service: process.env.EMAIL_SERVICE || 'gmail',
         auth: {
@@ -85,7 +99,7 @@ if (process.env.SENDGRID_API_KEY) {
             pass: EMAIL_PASS
         }
     });
-    console.log('Email transporter configured:', process.env.EMAIL_SERVICE || 'gmail');
+    console.log('Email transporter configured:', process.env.EMAIL_SERVICE || 'gmail', disableSendgrid ? '(SendGrid disabled)' : '');
 }
 
 // Optional explicit Gmail SMTP transport (used as a fallback when using an app password)

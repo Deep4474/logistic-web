@@ -1,3 +1,59 @@
+# LogiFlow — Deployment Guide
+
+This repository contains the LogiFlow Node.js app. This README explains how to deploy to Render and configure environment variables (no secrets are stored in the repo).
+
+## Quick summary
+- Start command: `npm start`
+- Build command: `npm install`
+- Port: Render provides `PORT` automatically; the app uses `process.env.PORT`.
+
+## Required environment variables (set in Render dashboard)
+- `NODE_ENV` = `production`
+- `MONGODB_URI` = your MongoDB Atlas connection string (recommended)
+- `EMAIL_USER` = sender email address (e.g. your Gmail)
+- `EMAIL_PASS` = Gmail App Password (16 chars) or SMTP password
+- `EMAIL_SERVICE` = `gmail`
+- `DISABLE_SENDGRID` = `true` (set to `false` only if you set `SENDGRID_API_KEY`)
+- (Optional) `SENDGRID_API_KEY` if you prefer SendGrid; then set `DISABLE_SENDGRID=false`
+
+### Notes
+- Do NOT commit secrets to GitHub. Use Render's Environment variables UI.
+- If `MONGODB_URI` is not provided, the app falls back to file-based JSON storage (ephemeral on Render). Use Atlas for production.
+- If using Gmail SMTP, enable 2FA and generate an App Password for `EMAIL_PASS`.
+
+## Deploying to Render (UI)
+1. Sign in to Render (https://render.com).
+2. Click `New` → `Web Service`.
+3. Connect your GitHub repo and choose branch `main`.
+4. Set Build Command: `npm install` and Start Command: `npm start`.
+5. Add the environment variables listed above in the Environment section.
+6. Create the service and watch the deploy logs.
+
+## Deploying to Render (using API)
+You can set environment variables programmatically using the Render API. See `scripts/render-set-env.ps1` for a PowerShell template.
+
+## Testing after deploy
+- Healthcheck:
+  ```bash
+  curl https://<your-service>.onrender.com/api/ping
+  ```
+- Register test user:
+  ```bash
+  curl -X POST https://<your-service>.onrender.com/api/register \
+    -H "Content-Type: application/json" \
+    -d '{"registerName":"DiagUser","registerEmail":"you@yourdomain.com","registerPassword":"Test1234"}'
+  ```
+- View users (if using file storage):
+  ```bash
+  curl https://<your-service>.onrender.com/api/users
+  ```
+
+## If emails are not delivered
+1. Check Render logs for lines containing `Email transporter configured` and any `Primary email send error` messages.
+2. If using Gmail, ensure `EMAIL_PASS` is an App Password.
+3. If you set `SENDGRID_API_KEY`, check your SendGrid Activity and Suppressions.
+
+If you want, provide your Render service URL and the log lines and I will help interpret them.
 # LogiFlow - Logistics Website Backend Setup
 
 ## 📋 Requirements
