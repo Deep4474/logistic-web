@@ -353,7 +353,18 @@ app.post('/api/register', async (req, res) => {
             return res.status(500).json({ error: 'Error processing registration: ' + hashError.message });
         }
 
-        // Send simple welcome email (no tracking)
+        // Return success immediately (email will be sent in background)
+        console.log('DEBUG: Sending 201 response to client');
+        res.status(201).json({
+            message: 'Registration successful!',
+            user: {
+                name: registerName,
+                email: registerEmail
+            }
+        });
+
+        // Send email in background (non-blocking)
+        console.log('DEBUG: Sending welcome email in background...');
         const welcomeHtml = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; color: white; border-radius: 8px 8px 0 0; text-align: center;">
@@ -384,18 +395,9 @@ app.post('/api/register', async (req, res) => {
                 </div>
             </div>
         `;
-
-        const emailSent = await sendEmail(registerEmail, 'Welcome to LogiFlow', welcomeHtml);
-
-        res.status(201).json({
-            message: emailSent 
-                ? 'Registration successful! Check your email for confirmation.'
-                : 'Registration successful! (Email could not be sent at this time)',
-            user: {
-                name: registerName,
-                email: registerEmail
-            },
-            emailSent: emailSent
+        
+        sendEmail(registerEmail, 'Welcome to LogiFlow', welcomeHtml).catch(err => {
+            console.error('DEBUG: Background email send failed:', err.message);
         });
 
     } catch (error) {
