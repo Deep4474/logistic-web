@@ -306,6 +306,10 @@ app.get('/api/ping', (req, res) => {
 // Register User
 app.post('/api/register', async (req, res) => {
     try {
+        console.log('DEBUG: /api/register called');
+        console.log('DEBUG: req.body =', JSON.stringify(req.body));
+        console.log('DEBUG: Content-Type =', req.headers['content-type']);
+        
         const { registerName, registerEmail, registerPassword } = req.body;
 
         // Validation
