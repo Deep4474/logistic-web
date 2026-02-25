@@ -12,12 +12,17 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // File paths for JSON storage
-const usersFilePath = path.join(__dirname, 'users.json');
-const ordersFilePath = path.join(__dirname, 'orders.json');
-const notificationsFilePath = path.join(__dirname, 'notifications.json');
-const picturesDir = path.join(__dirname, 'pictures');
+// Use /var/data for Render persistent disk, fallback to current directory for local development
+const DATA_DIR = process.env.NODE_ENV === 'production' && fs.existsSync('/var/data') ? '/var/data' : __dirname;
+const usersFilePath = path.join(DATA_DIR, 'users.json');
+const ordersFilePath = path.join(DATA_DIR, 'orders.json');
+const notificationsFilePath = path.join(DATA_DIR, 'notifications.json');
+const picturesDir = path.join(DATA_DIR, 'pictures');
 
-// Ensure pictures directory exists
+// Ensure data and pictures directories exist
+if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+}
 if (!fs.existsSync(picturesDir)) {
     fs.mkdirSync(picturesDir, { recursive: true });
 }
