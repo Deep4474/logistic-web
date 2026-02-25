@@ -320,26 +320,38 @@ app.post('/api/register', async (req, res) => {
 
         // Read users file
         const usersData = readUsersFile();
+        console.log('DEBUG: Read users file, total users:', usersData.users.length);
 
         // Check if user exists
         const userExists = usersData.users.find(u => u.email === registerEmail);
         if (userExists) {
+            console.log('DEBUG: User already exists:', registerEmail);
             return res.status(400).json({ error: 'User already exists' });
         }
+        console.log('DEBUG: User does not exist, proceeding to hash password');
 
         // Hash password and add new user (store passwordHash, not plaintext)
-        const salt = crypto.randomBytes(16);
-        const iterations = 100000;
-        const dk = crypto.pbkdf2Sync(registerPassword, salt, iterations, 32, 'sha256');
-        const passwordHash = `pbkdf2_sha256$${iterations}$${salt.toString('hex')}$${dk.toString('hex')}`;
+        try {
+            const salt = crypto.randomBytes(16);
+            const iterations = 100000;
+            const dk = crypto.pbkdf2Sync(registerPassword, salt, iterations, 32, 'sha256');
+            const passwordHash = `pbkdf2_sha256$${iterations}$${salt.toString('hex')}$${dk.toString('hex')}`;
+            console.log('DEBUG: Password hashed successfully');
 
-        usersData.users.push({
-            name: registerName,
-            email: registerEmail,
-            passwordHash: passwordHash,
-            registeredAt: new Date().toISOString()
-        });
-        writeUsersFile(usersData);
+            usersData.users.push({
+                name: registerName,
+                email: registerEmail,
+                passwordHash: passwordHash,
+                registeredAt: new Date().toISOString()
+            });
+            console.log('DEBUG: User added to array, writing file...');
+            
+            writeUsersFile(usersData);
+            console.log('DEBUG: Users file written successfully');
+        } catch (hashError) {
+            console.error('DEBUG: Error during hashing or file write:', hashError.message);
+            return res.status(500).json({ error: 'Error processing registration: ' + hashError.message });
+        }
 
         // Send simple welcome email (no tracking)
         const welcomeHtml = `
