@@ -1,0 +1,15 @@
+{
+  "notifications": {
+    "ayomideoluniyi49@gmail.com": [
+      {
+        "id": "40ihp6tmw",
+        "type": "order_created",
+        "title": "Order Pending Review - LocalTest",
+        "message": "Your LocalTest order is pending admin confirmation. Tracking ID: TRK-100001",
+        "read": false,
+        "timestamp": "2026-02-25T00:24:31.332Z",
+        "status": "Pending"
+      }
+    ]
+  }
+}

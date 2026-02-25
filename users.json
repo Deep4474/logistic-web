@@ -1,0 +1,22 @@
+{
+  "users": [
+    {
+      "name": "Ayomide Oluniyi",
+      "email": "ayomideoluniyi49@gmail.com",
+      "registeredAt": "2026-02-25T00:45:02.101Z",
+      "passwordHash": "pbkdf2_sha256$100000$0b25184ca452126518d1df53adb33a69$d2a8864cacdc653f828fba43e2e02081d81af53b69895d22b5b3f547363698c7"
+    },
+    {
+      "name": "Test User",
+      "email": "testuser@example.com",
+      "passwordHash": "pbkdf2_sha256$100000$b4b728cd1c051d4c50097ca89ab1278e$a4a304073442600dcc44d8f62b3fc311b4d00007ec1eef0920890edd89b79c58",
+      "registeredAt": "2026-02-25T00:59:46.556Z"
+    },
+    {
+      "name": "Test User",
+      "email": "newemail@test.com",
+      "passwordHash": "pbkdf2_sha256$100000$afbf2c6ea5e6431ba34b998bd7dcd94c$f8e553c69817faa359074a7793da857fc10300e5f601077f8e15c8c1be08b81d",
+      "registeredAt": "2026-02-25T00:59:51.338Z"
+    }
+  ]
+}

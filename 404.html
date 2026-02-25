@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogiFlow - Professional Logistics Solutions</title>
+    <script>
+        // Redirect all undefined routes to index.html
+        const path = window.location.pathname;
+        const segments = path.split('/').filter(Boolean);
+        
+        // If there's a valid file extension or it's a service page, keep it
+        if (path.includes('.') || path.includes('service-')) {
+            // Don't redirect, let the file load normally
+        } else {
+            // Redirect to home page
+            window.location.replace('/');
+        }
+    </script>
+</head>
+<body>
+    <p>Redirecting to home page...</p>
+</body>
+</html>

@@ -1,0 +1,33 @@
+{
+  "orders": [
+    {
+      "id": 1001,
+      "userEmail": "deepword37@gmail.com",
+      "service": "International Express",
+      "priceRange": "From $24.99",
+      "trackingId": "TRK-100000",
+      "pictureUrl": "/pictures/package-1771951993309.jpg",
+      "senderAddress": "AYomide, 08083052946\r\nno 20 ajijolaanobi street monantan ibadan",
+      "receiverAddress": "AYomide, 08083052946\r\nno 20 ajijolaanobi street monantan ibadan",
+      "status": "Confirmed",
+      "createdAt": "2026-02-24T16:53:13.328Z",
+      "description": "kfkj",
+      "updatedAt": "2026-02-24T16:54:54.946Z"
+    },
+    {
+      "id": 1002,
+      "userEmail": "ayomideoluniyi49@gmail.com",
+      "service": "LocalTest",
+      "priceRange": "Standard",
+      "trackingId": "TRK-100001",
+      "pictureUrl": "/pictures/package-1771979071276.jpg",
+      "senderAddress": "Tester",
+      "receiverAddress": "Receiver",
+      "status": "Pending",
+      "createdAt": "2026-02-25T00:24:31.330Z",
+      "description": "Standard shipment"
+    }
+  ],
+  "nextOrderId": 1003,
+  "nextTrackingId": 100002
+}

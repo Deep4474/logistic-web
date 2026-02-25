@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogiFlow Admin Panel</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75' fill='%234A90E2'>📦</text></svg>">
+    <link rel="stylesheet" href="admin-styles.css">
+</head>
+<body>
+    <!-- Admin Header -->
+    <header class="admin-header">
+        <div class="admin-header-content">
+            <h1 class="admin-logo">LogiFlow Admin</h1>
+            <div class="admin-user-menu">
+                <span id="adminUsername">Admin</span>
+                <button id="logoutBtn" class="logout-btn">Logout</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Access Denied Screen -->
+    <div id="accessDenied" class="access-denied hidden">
+        <div class="access-denied-content">
+            <h1>🔐 Access Denied</h1>
+            <p>You do not have permission to access the admin panel.</p>
+            <p>Please enter the correct password to continue.</p>
+            <button id="retryBtn" class="btn-retry">Try Again</button>
+        </div>
+    </div>
+
+    <!-- Admin Container -->
+    <div id="adminContainer" class="admin-container">
+        <!-- Sidebar Navigation -->
+        <aside class="admin-sidebar">
+            <nav class="admin-nav">
+                <a href="#" class="nav-item active" data-tab="dashboard">
+                    <span class="nav-icon">📊</span>
+                    Dashboard
+                </a>
+                <a href="#" class="nav-item" data-tab="users">
+                    <span class="nav-icon">👥</span>
+                    Users
+                </a>
+                <a href="#" class="nav-item" data-tab="orders">
+                    <span class="nav-icon">📦</span>
+                    Orders
+                </a>
+                <a href="#" class="nav-item" data-tab="notifications">
+                    <span class="nav-icon">🔔</span>
+                    Notifications
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="admin-main">
+            <!-- Dashboard Tab -->
+            <section id="dashboard" class="tab-content active">
+                <div class="content-header">
+                    <h2>Dashboard</h2>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon users-icon">👥</div>
+                        <div class="stat-info">
+                            <h3>Total Users</h3>
+                            <p id="totalUsers" class="stat-number">0</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon orders-icon">📦</div>
+                        <div class="stat-info">
+                            <h3>Total Orders</h3>
+                            <p id="totalOrders" class="stat-number">0</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon notifications-icon">🔔</div>
+                        <div class="stat-info">
+                            <h3>Notifications</h3>
+                            <p id="totalNotifications" class="stat-number">0</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon delivered-icon">✅</div>
+                        <div class="stat-info">
+                            <h3>Delivered</h3>
+                            <p id="deliveredOrders" class="stat-number">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="recent-section">
+                    <h3>Recent Orders</h3>
+                    <div id="recentOrders" class="recent-list">
+                        <p class="empty-state">Loading recent orders...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Users Tab -->
+            <section id="users" class="tab-content">
+                <div class="content-header">
+                    <h2>User Management</h2>
+                    <div class="search-box">
+                        <input type="text" id="userSearch" placeholder="Search users...">
+                    </div>
+                </div>
+
+                <div id="usersList" class="users-table">
+                    <p class="empty-state">Loading users...</p>
+                </div>
+            </section>
+
+            <!-- Orders Tab -->
+            <section id="orders" class="tab-content">
+                <div class="content-header">
+                    <h2>Order Management</h2>
+                    <div class="filter-bar">
+                        <label for="statusFilter" class="sr-only">Filter by Status</label>
+                        <select id="statusFilter" title="Filter orders by status" aria-label="Filter by status">
+                            <option value="">All Status</option>
+                            <option value="Confirmed">Confirmed</option>
+                            <option value="In Transit">In Transit</option>
+                            <option value="Out for Delivery">Out for Delivery</option>
+                            <option value="Delivered">Delivered</option>
+                        </select>
+                        <input type="text" id="orderSearch" placeholder="Search by Order ID or Tracking...">
+                    </div>
+                </div>
+
+                <div id="ordersList" class="orders-table">
+                    <p class="empty-state">Loading orders...</p>
+                </div>
+            </section>
+
+            <!-- Notifications Tab -->
+            <section id="notifications" class="tab-content">
+                <div class="content-header">
+                    <h2>Notification Management</h2>
+                    <div class="search-box">
+                        <input type="text" id="notificationSearch" placeholder="Search by email...">
+                    </div>
+                </div>
+
+                <div id="notificationsList" class="notifications-table">
+                    <p class="empty-state">Loading notifications...</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Edit Order Modal -->
+    <div id="editOrderModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Edit Order</h2>
+            <form id="editOrderForm">
+                <div class="form-group">
+                    <label for="editOrderId">Order ID</label>
+                    <input type="text" id="editOrderId" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="editOrderStatus">Status</label>
+                    <select id="editOrderStatus" aria-label="Update order status">
+                        <option value="Confirmed">Confirmed</option>
+                        <option value="In Transit">In Transit</option>
+                        <option value="Out for Delivery">Out for Delivery</option>
+                        <option value="Delivered">Delivered</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editOrderDescription">Description</label>
+                    <textarea id="editOrderDescription" aria-label="Order description"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="packagePictureInput">📸 Upload Package Picture</label>
+                    <div class="picture-upload-wrapper">
+                        <input 
+                            type="file" 
+                            id="packagePictureInput" 
+                            accept="image/*"
+                            aria-label="Upload package picture"
+                        >
+                        <button type="button" class="btn-mobile-upload" onclick="triggerCameraOrGallery()">📷 Upload Picture</button>
+                    </div>
+                    <div id="picturePreview" class="picture-preview hidden">
+                        <img id="previewImage" src="" alt="Package picture preview" class="preview-image">
+                        <button type="button" class="btn-remove-picture" onclick="removePicture()">Remove Picture</button>
+                    </div>
+                </div>
+                <button type="submit" class="btn-save">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="admin-script.js"></script>
+</body>
+</html>

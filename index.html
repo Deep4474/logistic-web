@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogiFlow - Professional Logistics Solutions</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75' fill='%234A90E2'>📦</text></svg>">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-wrapper">
+                <div class="logo">LogiFlow</div>
+                <div class="nav-right">
+                    <ul class="nav-menu">
+                        <li><a href="#home">Home</a></li>
+                        <li><a href="#services">Services</a></li>
+                        <li><a href="#tracking">Track Shipment</a></li>
+                        <li><a href="#contact">Contact</a></li>
+                    </ul>
+                    <div class="hamburger">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <div class="user-menu-wrapper">
+                    <button class="user-icon-btn" onclick="toggleUserMenu()">👤</button>
+                    <div id="userDropdown" class="user-dropdown">
+                        <div id="authSection">
+                            <button class="auth-btn login-btn" onclick="openLoginModal()">Login</button>
+                            <button class="auth-btn register-btn" onclick="openRegisterModal()">Register</button>
+                        </div>
+                        <div id="userSection" class="hidden">
+                            <a href="#" class="user-menu-item" onclick="showProfile(event)">👤 Profile</a>
+                            <a href="#" class="user-menu-item" onclick="showOrders(event)">📦 Order List</a>
+                            <a href="#" class="user-menu-item" onclick="showNotifications(event)">🔔 Notification</a>
+                            <hr>
+                            <a href="#" class="user-menu-item logout-item" onclick="logout(event)">🚪 Logout</a>
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-content">
+            <h1>Fast, Reliable Logistics Solutions</h1>
+            <p>Delivering your goods with precision and care across the globe</p>
+            <button class="btn btn-primary">Get Started</button>
+        </div>
+        <div class="hero-image">
+            <div class="truck-icon">🚚</div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section class="services" id="services">
+        <div class="container">
+            <h2>Our Services</h2>
+            <div class="service-grid">
+                <a href="service-package-delivery.html" class="service-card">
+                    <div class="service-icon">📦</div>
+                    <h3>Package Delivery</h3>
+                    <p>Fast and secure delivery of packages nationwide. Real-time tracking for complete peace of mind.</p>
+                </a>
+                <a href="service-international-shipping.html" class="service-card">
+                    <div class="service-icon">🌍</div>
+                    <h3>International Shipping</h3>
+                    <p>Worldwide logistics network with customs clearance and door-to-door delivery services.</p>
+                </a>
+                <a href="service-warehouse.html" class="service-card">
+                    <div class="service-icon">📍</div>
+                    <h3>Warehouse Management</h3>
+                    <p>State-of-the-art warehousing facilities with efficient inventory management systems.</p>
+                </a>
+                <a href="service-freight.html" class="service-card">
+                    <div class="service-icon">🚛</div>
+                    <h3>Freight Services</h3>
+                    <p>Heavy equipment and bulk cargo transportation with professional handling and care.</p>
+                </a>
+                <a href="service-express-delivery.html" class="service-card">
+                    <div class="service-icon">⏱️</div>
+                    <h3>Express Delivery</h3>
+                    <p>Same-day and next-day delivery options for urgent shipments and time-sensitive cargo.</p>
+                </a>
+                <a href="service-business-solutions.html" class="service-card">
+                    <div class="service-icon">💼</div>
+                    <h3>Business Solutions</h3>
+                    <p>Customized logistics solutions tailored to your specific business needs and requirements.</p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tracking Section -->
+    <section class="tracking" id="tracking">
+        <div class="container">
+            <h2>Track Your Shipment</h2>
+            <div class="tracking-form">
+                <input 
+                    type="text" 
+                    id="trackingInput" 
+                    placeholder="Enter your tracking number (e.g., LF123456789)" 
+                    class="tracking-input"
+                >
+                <button class="btn btn-primary" id="trackBtn">Track Now</button>
+            </div>
+            <div id="trackingResult" class="tracking-result">
+                <div class="result-card">
+                    <h3 id="resultTitle"></h3>
+                    <div class="tracking-steps">
+                        <div class="step completed">
+                            <div class="step-circle">✓</div>
+                            <p>Order Placed</p>
+                        </div>
+                        <div class="step-line"></div>
+                        <div class="step completed">
+                            <div class="step-circle">✓</div>
+                            <p>In Transit</p>
+                        </div>
+                        <div class="step-line"></div>
+                        <div class="step" id="finalStep">
+                            <div class="step-circle">📍</div>
+                            <p id="finalStepText">Arriving Soon</p>
+                        </div>
+                    </div>
+                    <p class="result-message" id="resultMessage"></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats">
+        <div class="container">
+            <div class="stat-box">
+                <h3>50,000+</h3>
+                <p>Deliveries Completed</p>
+            </div>
+            <div class="stat-box">
+                <h3>150+</h3>
+                <p>Cities Covered</p>
+            </div>
+            <div class="stat-box">
+                <h3>99%</h3>
+                <p>On-Time Delivery</p>
+            </div>
+            <div class="stat-box">
+                <h3>24/7</h3>
+                <p>Customer Support</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="testimonials">
+        <div class="container">
+            <h2>What Our Clients Say</h2>
+            <div class="testimonial-grid">
+                <div class="testimonial-card">
+                    <div class="stars">⭐⭐⭐⭐⭐</div>
+                    <p>"LogiFlow has transformed our shipping process. Reliable, efficient, and professional!"</p>
+                    <p class="client-name">- Sarah Johnson, E-commerce Manager</p>
+                </div>
+                <div class="testimonial-card">
+                    <div class="stars">⭐⭐⭐⭐⭐</div>
+                    <p>"Best logistics partner we've worked with. Their tracking system is incredibly accurate."</p>
+                    <p class="client-name">- Michael Chen, Business Owner</p>
+                </div>
+                <div class="testimonial-card">
+                    <div class="stars">⭐⭐⭐⭐⭐</div>
+                    <p>"Excellent customer service and competitive pricing. Highly recommended for any business."</p>
+                    <p class="client-name">- Emma Thompson, Supply Chain Director</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="contact" id="contact">
+        <div class="container">
+            <h2>Get In Touch</h2>
+            <div class="contact-wrapper">
+                <div class="contact-info">
+                    <div class="info-item">
+                        <h3>📍 Address</h3>
+                        <p>123 Logistics Hub, Commerce City<br>New York, NY 10001</p>
+                    </div>
+                    <div class="info-item">
+                        <h3>📞 Phone</h3>
+                        <p>1-800-LOGFLOW<br>(1-800-564-3569)</p>
+                    </div>
+                    <div class="info-item">
+                        <h3>✉️ Email</h3>
+                        <p>support@logiflow.com<br>info@logiflow.com</p>
+                    </div>
+                    <div class="info-item">
+                        <h3>🕐 Hours</h3>
+                        <p>Monday - Friday: 8:00 AM - 6:00 PM<br>Saturday: 9:00 AM - 4:00 PM</p>
+                    </div>
+                </div>
+                <form class="contact-form" id="contactForm">
+                    <input type="text" placeholder="Your Name" required>
+                    <input type="email" placeholder="Your Email" required>
+                    <input type="text" placeholder="Subject" required>
+                    <textarea placeholder="Your Message" rows="5" required></textarea>
+                    <button type="submit" class="btn btn-primary">Send Message</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>LogiFlow</h4>
+                    <p>Your trusted logistics partner for fast, reliable delivery solutions.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="#home">Home</a></li>
+                        <li><a href="#services">Services</a></li>
+                        <li><a href="#tracking">Track</a></li>
+                        <li><a href="#contact">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Follow Us</h4>
+                    <div class="social-links">
+                        <a href="#">Facebook</a>
+                        <a href="#">Twitter</a>
+                        <a href="#">LinkedIn</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 LogiFlow. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content auth-modal">
+            <span class="close-btn" onclick="closeLoginModal()">&times;</span>
+            <h2>Login to LogiFlow</h2>
+            <form id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <label for="loginEmail">Email:</label>
+                    <input type="email" id="loginEmail" name="loginEmail" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password:</label>
+                    <input type="password" id="loginPassword" name="loginPassword" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Login</button>
+                <p class="auth-link">Don't have an account? <a href="#" onclick="switchToRegister(event)">Register here</a></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="registerModal" class="modal">
+        <div class="modal-content auth-modal">
+            <span class="close-btn" onclick="closeRegisterModal()">&times;</span>
+            <h2>Create Account</h2>
+            <form id="registerForm" class="auth-form">
+                <div class="form-group">
+                    <label for="registerName">Full Name:</label>
+                    <input type="text" id="registerName" name="registerName" placeholder="Enter your full name" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerEmail">Email:</label>
+                    <input type="email" id="registerEmail" name="registerEmail" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPhone">Phone:</label>
+                    <input type="tel" id="registerPhone" name="registerPhone" placeholder="Enter your phone number" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Password:</label>
+                    <input type="password" id="registerPassword" name="registerPassword" placeholder="Enter your password" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerConfirmPassword">Confirm Password:</label>
+                    <input type="password" id="registerConfirmPassword" name="registerConfirmPassword" placeholder="Confirm your password" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Register</button>
+                <p class="auth-link">Already have an account? <a href="#" onclick="switchToLogin(event)">Login here</a></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- User Profile Modal -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content user-modal">
+            <span class="close-btn" onclick="closeProfileModal()">&times;</span>
+            <h2>👤 My Profile</h2>
+            <div class="profile-info">
+                <p><strong>Name:</strong> <span id="profileName">-</span></p>
+                <p><strong>Email:</strong> <span id="profileEmail">-</span></p>
+                <p><strong>Phone:</strong> <span id="profilePhone">-</span></p>
+                <button class="btn btn-secondary" onclick="editProfile()">Edit Profile</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Orders Modal -->
+    <div id="ordersModal" class="modal">
+        <div class="modal-content user-modal">
+            <span class="close-btn" onclick="closeOrdersModal()">&times;</span>
+            <h2>📦 Order List</h2>
+            <div id="ordersList" class="orders-list">
+                <p class="no-data">No orders yet. Start shipping with LogiFlow!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications Modal -->
+    <div id="notificationsModal" class="modal">
+        <div class="modal-content user-modal">
+            <span class="close-btn" onclick="closeNotificationsModal()">&times;</span>
+            <h2>🔔 Notifications</h2>
+            <div id="notificationsList" class="notifications-list">
+                <p class="no-data">No notifications at the moment.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div id="imageModal" class="modal image-modal-hidden">
+        <div class="image-modal-content" onclick="event.stopPropagation()">
+            <span class="close-btn" onclick="closeImageModal()">×</span>
+            <img id="modalImage" src="" alt="Package Picture" class="modal-image">
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
