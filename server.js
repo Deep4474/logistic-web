@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const crypto = require('crypto');
+const { MongoClient, ObjectId } = require('mongodb');
 require('dotenv').config();
 
 const app = express();
@@ -104,6 +105,47 @@ if (EMAIL_USER && EMAIL_USER.toLowerCase().endsWith('@gmail.com') && EMAIL_PASS)
     } catch (e) {
         console.warn('Could not prepare Gmail fallback transporter:', e.message);
         gmailTransport = null;
+    }
+}
+
+// MongoDB Connection Setup
+const MONGODB_URI = process.env.MONGODB_URI;
+let db = null;
+let mongoClient = null;
+
+async function connectMongoDB() {
+    try {
+        if (MONGODB_URI) {
+            mongoClient = new MongoClient(MONGODB_URI);
+            await mongoClient.connect();
+            db = mongoClient.db('logisticdb');
+            
+            // Create collections if they don't exist
+            const collections = await db.listCollections().toArray();
+            const collectionNames = collections.map(c => c.name);
+            
+            if (!collectionNames.includes('users')) {
+                await db.createCollection('users');
+                console.log('Created users collection');
+            }
+            if (!collectionNames.includes('orders')) {
+                await db.createCollection('orders');
+                console.log('Created orders collection');
+            }
+            if (!collectionNames.includes('notifications')) {
+                await db.createCollection('notifications');
+                console.log('Created notifications collection');
+            }
+            
+            console.log('MongoDB connected successfully');
+            return true;
+        } else {
+            console.warn('MONGODB_URI not set, falling back to JSON file storage');
+            return false;
+        }
+    } catch (error) {
+        console.error('MongoDB connection error:', error);
+        return false;
     }
 }
 
@@ -323,39 +365,55 @@ app.post('/api/register', async (req, res) => {
             return res.status(400).json({ error: 'All fields are required' });
         }
 
-        // Read users file
-        const usersData = readUsersFile();
-        console.log('DEBUG: Read users file, total users:', usersData.users.length);
+        // Hash password
+        const salt = crypto.randomBytes(16);
+        const iterations = 100000;
+        const dk = crypto.pbkdf2Sync(registerPassword, salt, iterations, 32, 'sha256');
+        const passwordHash = `pbkdf2_sha256$${iterations}$${salt.toString('hex')}$${dk.toString('hex')}`;
+        console.log('DEBUG: Password hashed successfully');
 
-        // Check if user exists
-        const userExists = usersData.users.find(u => u.email === registerEmail);
-        if (userExists) {
-            console.log('DEBUG: User already exists:', registerEmail);
-            return res.status(400).json({ error: 'User already exists' });
-        }
-        console.log('DEBUG: User does not exist, proceeding to hash password');
+        const newUser = {
+            name: registerName,
+            email: registerEmail,
+            passwordHash: passwordHash,
+            registeredAt: new Date().toISOString()
+        };
 
-        // Hash password and add new user (store passwordHash, not plaintext)
         try {
-            const salt = crypto.randomBytes(16);
-            const iterations = 100000;
-            const dk = crypto.pbkdf2Sync(registerPassword, salt, iterations, 32, 'sha256');
-            const passwordHash = `pbkdf2_sha256$${iterations}$${salt.toString('hex')}$${dk.toString('hex')}`;
-            console.log('DEBUG: Password hashed successfully');
-
-            usersData.users.push({
-                name: registerName,
-                email: registerEmail,
-                passwordHash: passwordHash,
-                registeredAt: new Date().toISOString()
-            });
-            console.log('DEBUG: User added to array, writing file...');
-            
-            writeUsersFile(usersData);
-            console.log('DEBUG: Users file written successfully');
-        } catch (hashError) {
-            console.error('DEBUG: Error during hashing or file write:', hashError.message);
-            return res.status(500).json({ error: 'Error processing registration: ' + hashError.message });
+            // Try MongoDB first
+            if (db) {
+                console.log('DEBUG: Using MongoDB for user storage');
+                const usersCollection = db.collection('users');
+                
+                // Check if user exists
+                const userExists = await usersCollection.findOne({ email: registerEmail });
+                if (userExists) {
+                    console.log('DEBUG: User already exists:', registerEmail);
+                    return res.status(400).json({ error: 'User already exists' });
+                }
+                
+                // Insert user into MongoDB
+                await usersCollection.insertOne(newUser);
+                console.log('DEBUG: User inserted into MongoDB');
+            } else {
+                // Fallback to JSON file storage
+                console.log('DEBUG: Using JSON file storage for users');
+                const usersData = readUsersFile();
+                
+                // Check if user exists
+                const userExists = usersData.users.find(u => u.email === registerEmail);
+                if (userExists) {
+                    console.log('DEBUG: User already exists:', registerEmail);
+                    return res.status(400).json({ error: 'User already exists' });
+                }
+                
+                usersData.users.push(newUser);
+                writeUsersFile(usersData);
+                console.log('DEBUG: User added to JSON file');
+            }
+        } catch (storageError) {
+            console.error('DEBUG: Error during user storage:', storageError.message);
+            return res.status(500).json({ error: 'Error processing registration: ' + storageError.message });
         }
 
         // Return success immediately (email will be sent in background)
@@ -1082,7 +1140,10 @@ app.get('*', (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
     console.log(`LogiFlow Server running on http://localhost:${PORT}`);
     console.log('Email service configured for:', 'ayomideoluniyi49@gmail.com');
+    
+    // Connect to MongoDB
+    await connectMongoDB();
 });
