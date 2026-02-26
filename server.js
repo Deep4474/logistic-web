@@ -13,10 +13,11 @@ require('dotenv').config();
 require('dotenv').config({ path: '.env.local' });
 
 // initialize Supabase client if environment provides valid variables
-// support multiple key names so we can use anon or service role keys
+// support multiple key names; prefer the service role key for server-side operations
 const SUPABASE_URL = process.env.SUPABASE_URL;
-// prefer explicit SUPABASE_KEY, fall back to anon or service role names
-const SUPABASE_KEY = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+// prefer service role key for server (has full privileges), then explicit SUPABASE_KEY, then anon key
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY;
+let supabaseKeyName = process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SUPABASE_SERVICE_ROLE_KEY' : process.env.SUPABASE_KEY ? 'SUPABASE_KEY' : process.env.SUPABASE_ANON_KEY ? 'SUPABASE_ANON_KEY' : null;
 
 // validate that SUPABASE_URL is a real URL (not a placeholder or invalid format)
 function isValidSupabaseUrl(url) {
@@ -31,19 +32,31 @@ let supabase = null;
 if (isValidSupabaseUrl(SUPABASE_URL) && SUPABASE_KEY) {
     try {
         supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-        console.log('Supabase client initialized using ' +
-            (process.env.SUPABASE_KEY ? 'SUPABASE_KEY' : process.env.SUPABASE_ANON_KEY ? 'SUPABASE_ANON_KEY' : 'SUPABASE_SERVICE_ROLE_KEY')
-        );
+        console.log('Supabase client initialized using ' + (supabaseKeyName || 'unknown key'));
+        if (supabaseKeyName === 'SUPABASE_ANON_KEY') {
+            console.warn('Warning: SUPABASE_ANON_KEY is being used on the server. Prefer using SUPABASE_SERVICE_ROLE_KEY for server-side writes.');
+        }
     } catch (err) {
-        console.warn('Failed to initialize Supabase:', err.message);
+        console.warn('Failed to initialize Supabase:', err && err.message ? err.message : err);
+        supabase = null;
     }
 } else if (SUPABASE_URL && !isValidSupabaseUrl(SUPABASE_URL)) {
     console.log('SUPABASE_URL is not a valid URL (placeholder?); skipping Supabase initialization');
 }
 
+// lightweight status endpoint to confirm Supabase availability (masked keys)
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// lightweight status endpoint to confirm Supabase availability (registered before static/catch-all)
+app.get('/api/supabase-status', (req, res) => {
+    res.json({
+        enabled: !!supabase,
+        url: SUPABASE_URL || null,
+        keyUsed: supabaseKeyName ? (supabaseKeyName === 'SUPABASE_SERVICE_ROLE_KEY' ? 'service_role' : (supabaseKeyName === 'SUPABASE_ANON_KEY' ? 'anon' : 'other')) : null
+    });
+});
 
 // File paths for JSON storage
 // Use `DATA_DIR` env var when provided (useful for custom setups),
