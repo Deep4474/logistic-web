@@ -10,6 +10,53 @@
         "timestamp": "2026-02-25T00:24:31.332Z",
         "status": "Pending"
       }
+    ],
+    "deepword37@gmail.com": [
+      {
+        "id": "qw2bg9dwt",
+        "type": "order_created",
+        "title": "Order Pending Review - Express Delivery",
+        "message": "Your Express Delivery order is pending admin confirmation. Tracking ID: TRK-100002",
+        "read": false,
+        "timestamp": "2026-02-25T12:31:19.317Z",
+        "status": "Pending"
+      },
+      {
+        "id": "n87eali63",
+        "type": "order_created",
+        "title": "Order Pending Review - Express Delivery",
+        "message": "Your Express Delivery order is pending admin confirmation. Tracking ID: TRK-100003",
+        "read": false,
+        "timestamp": "2026-02-25T12:32:27.087Z",
+        "status": "Pending"
+      },
+      {
+        "id": "qfsfxl7q1",
+        "type": "order_created",
+        "title": "Order Pending Review - Standard Delivery",
+        "message": "Your Standard Delivery order is pending admin confirmation. Tracking ID: TRK-100004",
+        "read": false,
+        "timestamp": "2026-02-25T13:05:29.969Z",
+        "status": "Pending"
+      },
+      {
+        "id": "pivpj8641",
+        "type": "order_created",
+        "title": "Order Pending Review - Standard Delivery",
+        "message": "Your Standard Delivery order is pending admin confirmation. Tracking ID: TRK-100005",
+        "read": false,
+        "timestamp": "2026-02-25T13:39:38.185Z",
+        "status": "Pending"
+      },
+      {
+        "id": "z3eu2nqjs",
+        "type": "order_created",
+        "title": "Order Pending Review - Standard Delivery",
+        "message": "Your Standard Delivery order is pending admin confirmation. Tracking ID: TRK-100006",
+        "read": false,
+        "timestamp": "2026-02-25T13:54:58.732Z",
+        "status": "Pending"
+      }
     ]
   }
 }

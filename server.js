@@ -7,14 +7,31 @@ const path = require('path');
 const multer = require('multer');
 const crypto = require('crypto');
 const { MongoClient, ObjectId } = require('mongodb');
+const { createClient } = require('@supabase/supabase-js');
+// load .env then .env.local (locals override defaults)
 require('dotenv').config();
+require('dotenv').config({ path: '.env.local' });
+
+// initialize Supabase client if environment provides the variables
+// support multiple key names so we can use anon or service role keys
+const SUPABASE_URL = process.env.SUPABASE_URL;
+// prefer explicit SUPABASE_KEY, fall back to anon or service role names
+const SUPABASE_KEY = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+let supabase = null;
+if (SUPABASE_URL && SUPABASE_KEY) {
+    supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+    console.log('Supabase client initialized using ' +
+        (process.env.SUPABASE_KEY ? 'SUPABASE_KEY' : process.env.SUPABASE_ANON_KEY ? 'SUPABASE_ANON_KEY' : 'SUPABASE_SERVICE_ROLE_KEY')
+    );
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // File paths for JSON storage
-// Use /var/data for Render persistent disk, fallback to current directory for local development
-const DATA_DIR = process.env.NODE_ENV === 'production' && fs.existsSync('/var/data') ? '/var/data' : __dirname;
+// Use `DATA_DIR` env var when provided (useful for custom setups),
+// otherwise store data in the project directory for local development.
+const DATA_DIR = process.env.DATA_DIR || __dirname;
 const usersFilePath = path.join(DATA_DIR, 'users.json');
 const ordersFilePath = path.join(DATA_DIR, 'orders.json');
 const notificationsFilePath = path.join(DATA_DIR, 'notifications.json');
@@ -59,6 +76,19 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('.'));
 app.use('/pictures', express.static(picturesDir));
+
+// Global error handlers to aid debugging when server crashes
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err && err.stack ? err.stack : err);
+});
+process.on('unhandledRejection', (reason) => {
+    console.error('Unhandled Rejection:', reason && reason.stack ? reason.stack : reason);
+});
+
+// Simple health-check endpoint for quick verification
+app.get('/ping', (req, res) => {
+    res.json({ status: 'ok', time: new Date().toISOString() });
+});
 
 // Email Configuration - prefer transactional provider (SendGrid) when available
 const EMAIL_USER = process.env.EMAIL_USER || process.env.EMAIL || 'ayomideoluniyi49@gmail.com';
@@ -130,7 +160,15 @@ let mongoClient = null;
 async function connectMongoDB() {
     try {
         if (MONGODB_URI) {
-            mongoClient = new MongoClient(MONGODB_URI);
+            const mongoOptions = {
+                tlsAllowInvalidCertificates: true,
+                serverSelectionTimeoutMS: 10000,
+                connectTimeoutMS: 10000,
+                socketTimeoutMS: 45000,
+                retryWrites: true,
+                w: 'majority'
+            };
+            mongoClient = new MongoClient(MONGODB_URI, mongoOptions);
             await mongoClient.connect();
             db = mongoClient.db('logisticdb');
             
@@ -186,6 +224,13 @@ function readUsersFile() {
 function writeUsersFile(data) {
     try {
         fs.writeFileSync(usersFilePath, JSON.stringify(data, null, 2));
+        try {
+            const usersCount = Array.isArray(data.users) ? data.users.length : 'N/A';
+            const lastUser = (Array.isArray(data.users) && data.users.length > 0) ? (data.users[data.users.length - 1].email || data.users[data.users.length - 1].name) : null;
+            console.log(`writeUsersFile: wrote users.json (${usersCount} users) last=${lastUser}`);
+        } catch (logErr) {
+            console.warn('writeUsersFile: could not log details', logErr && logErr.message ? logErr.message : logErr);
+        }
     } catch (error) {
         console.error('Error writing users file:', error);
     }
@@ -245,6 +290,99 @@ function writeNotificationsFile(data) {
     }
 }
 
+// ------------------------------------------------------------------
+// Supabase / storage helper functions
+// these helpers pick the appropriate backend (Supabase, MongoDB, or
+// JSON file) depending on what has been configured.
+
+async function findUserByEmail(email) {
+    if (supabase) {
+        const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', email)
+            .limit(1);
+        if (error) throw error;
+        return data[0] || null;
+    }
+    if (db) {
+        return await db.collection('users').findOne({ email });
+    }
+    const usersData = readUsersFile();
+    return usersData.users.find(u => u.email === email) || null;
+}
+
+async function insertUser(user) {
+    if (supabase) {
+        const { error } = await supabase.from('users').insert(user);
+        if (error) throw error;
+        return;
+    }
+    if (db) {
+        await db.collection('users').insertOne(user);
+    } else {
+        const usersData = readUsersFile();
+        usersData.users.push(user);
+        writeUsersFile(usersData);
+    }
+}
+
+async function getOrdersByUserEmail(email) {
+    if (supabase) {
+        const { data, error } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('user_email', email);
+        if (error) throw error;
+        return data;
+    }
+    const ordersData = readOrdersFile();
+    return ordersData.orders.filter(o => o.userEmail === email);
+}
+
+async function addOrder(order) {
+    if (supabase) {
+        const { error } = await supabase.from('orders').insert(order);
+        if (error) throw error;
+        return;
+    }
+    const ordersData = readOrdersFile();
+    ordersData.orders.push(order);
+    writeOrdersFile(ordersData);
+}
+
+async function getNotificationsByEmail(email) {
+    if (supabase) {
+        const { data, error } = await supabase
+            .from('notifications')
+            .select('*')
+            .eq('user_email', email);
+        if (error) throw error;
+        return data;
+    }
+    const notificationsData = readNotificationsFile();
+    return notificationsData.notifications[email] || [];
+}
+
+async function addNotification(userEmail, notif) {
+    if (supabase) {
+        const { error } = await supabase.from('notifications').insert({
+            user_email: userEmail,
+            ...notif
+        });
+        if (error) throw error;
+        return;
+    }
+    const notificationsData = readNotificationsFile();
+    if (!notificationsData.notifications[userEmail]) {
+        notificationsData.notifications[userEmail] = [];
+    }
+    notificationsData.notifications[userEmail].push(notif);
+    writeNotificationsFile(notificationsData);
+}
+
+// ------------------------------------------------------------------
+
 // Helper function to generate tracking ID
 function generateTrackingId() {
     const ordersData = readOrdersFile();
@@ -267,7 +405,7 @@ function generateOrderId() {
 async function sendEmail(to, subject, html) {
     try {
         const mailOptions = {
-            from: 'ayomideoluniyi49@gmail.com',
+            from: EMAIL_USER || 'no-reply@logiflow.local',
             to: to,
             subject: subject,
             html: html
@@ -394,37 +532,15 @@ app.post('/api/register', async (req, res) => {
         };
 
         try {
-            // Try MongoDB first
-            if (db) {
-                console.log('DEBUG: Using MongoDB for user storage');
-                const usersCollection = db.collection('users');
-                
-                // Check if user exists
-                const userExists = await usersCollection.findOne({ email: registerEmail });
-                if (userExists) {
-                    console.log('DEBUG: User already exists:', registerEmail);
-                    return res.status(400).json({ error: 'User already exists' });
-                }
-                
-                // Insert user into MongoDB
-                await usersCollection.insertOne(newUser);
-                console.log('DEBUG: User inserted into MongoDB');
-            } else {
-                // Fallback to JSON file storage
-                console.log('DEBUG: Using JSON file storage for users');
-                const usersData = readUsersFile();
-                
-                // Check if user exists
-                const userExists = usersData.users.find(u => u.email === registerEmail);
-                if (userExists) {
-                    console.log('DEBUG: User already exists:', registerEmail);
-                    return res.status(400).json({ error: 'User already exists' });
-                }
-                
-                usersData.users.push(newUser);
-                writeUsersFile(usersData);
-                console.log('DEBUG: User added to JSON file');
+            // unified storage check using helper (Supabase / Mongo / JSON)
+            const userExists = await findUserByEmail(registerEmail);
+            if (userExists) {
+                console.log('DEBUG: User already exists:', registerEmail);
+                return res.status(400).json({ error: 'User already exists' });
             }
+
+            await insertUser(newUser);
+            console.log('DEBUG: User stored successfully');
         } catch (storageError) {
             console.error('DEBUG: Error during user storage:', storageError.message);
             return res.status(500).json({ error: 'Error processing registration: ' + storageError.message });
@@ -492,8 +608,7 @@ app.post('/api/login', async (req, res) => {
             return res.status(400).json({ error: 'Email and password required' });
         }
 
-        const usersData = readUsersFile();
-        const user = usersData.users.find(u => u.email === email);
+        const user = await findUserByEmail(email);
 
         if (!user) {
             return res.status(401).json({ error: 'User not found' });
@@ -555,19 +670,17 @@ app.post('/api/login', async (req, res) => {
 });
 
 // Get Orders by Email
-app.get('/api/orders/:email', (req, res) => {
+app.get('/api/orders/:email', async (req, res) => {
     try {
         const { email } = req.params;
 
-        const usersData = readUsersFile();
-        const userExists = usersData.users.find(u => u.email === email);
+        const userExists = await findUserByEmail(email);
 
         if (!userExists) {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        const ordersData = readOrdersFile();
-        const userOrders = ordersData.orders.filter(order => order.userEmail === email);
+        const userOrders = await getOrdersByUserEmail(email);
 
         if (userOrders.length === 0) {
             return res.json({
@@ -588,19 +701,17 @@ app.get('/api/orders/:email', (req, res) => {
 });
 
 // Get Notifications by Email
-app.get('/api/notifications/:email', (req, res) => {
+app.get('/api/notifications/:email', async (req, res) => {
     try {
         const { email } = req.params;
 
-        const usersData = readUsersFile();
-        const userExists = usersData.users.find(u => u.email === email);
+        const userExists = await findUserByEmail(email);
 
         if (!userExists) {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        const notificationsData = readNotificationsFile();
-        const userNotifications = notificationsData.notifications[email] || [];
+        const userNotifications = await getNotificationsByEmail(email);
 
         res.json({
             message: 'Notifications retrieved successfully',
@@ -632,8 +743,7 @@ app.post('/api/create-order', upload.single('packagePicture'), async (req, res) 
             return res.status(400).json({ error: 'Sender and receiver addresses are required' });
         }
 
-        const usersData = readUsersFile();
-        const userExists = usersData.users.find(u => u.email === email);
+        const userExists = await findUserByEmail(email);
 
         if (!userExists) {
             fs.unlinkSync(req.file.path);
@@ -644,9 +754,20 @@ app.post('/api/create-order', upload.single('packagePicture'), async (req, res) 
         const orderId = generateOrderId();
         const picturePath = `/pictures/${req.file.filename}`;
 
-        // Create and save order with Pending status and addresses
-        const ordersData = readOrdersFile();
-        ordersData.orders.push({
+        // build order object for whichever backend is used
+        const orderRecord = supabase ? {
+            id: orderId,
+            user_email: email,
+            service,
+            price_range: priceRange,
+            tracking_id: trackingId,
+            picture_url: picturePath,
+            sender_address: senderAddress,
+            receiver_address: receiverAddress,
+            status: 'Pending',
+            created_at: new Date(),
+            description: specialRequirements || 'Standard shipment'
+        } : {
             id: orderId,
             userEmail: email,
             service: service,
@@ -658,15 +779,11 @@ app.post('/api/create-order', upload.single('packagePicture'), async (req, res) 
             status: 'Pending',
             createdAt: new Date(),
             description: specialRequirements || 'Standard shipment'
-        });
-        writeOrdersFile(ordersData);
+        };
 
-        // Create notification with Pending status
-        const notificationsData = readNotificationsFile();
-        if (!notificationsData.notifications[email]) {
-            notificationsData.notifications[email] = [];
-        }
-        notificationsData.notifications[email].push({
+        await addOrder(orderRecord);
+
+        const notif = {
             id: Math.random().toString(36).substr(2, 9),
             type: 'order_created',
             title: `Order Pending Review - ${service}`,
@@ -674,8 +791,8 @@ app.post('/api/create-order', upload.single('packagePicture'), async (req, res) 
             read: false,
             timestamp: new Date(),
             status: 'Pending'
-        });
-        writeNotificationsFile(notificationsData);
+        };
+        await addNotification(email, notif);
 
         // Send pending order email
         const orderHtml = `
@@ -767,7 +884,24 @@ app.put('/api/update-order', async (req, res) => {
         const previousStatus = ordersData.orders[orderIndex].status;
         console.log('Previous status:', previousStatus, 'New status:', status);
 
-        // Update order
+        // If Supabase is configured, update remotely
+        if (supabase) {
+            const updateFields = {};
+            if (status) updateFields.status = status;
+            if (description !== undefined) updateFields.description = description;
+            updateFields.updatedAt = new Date();
+            const { error } = await supabase
+                .from('orders')
+                .update(updateFields)
+                .eq('id', orderId);
+            if (error) {
+                console.error('✗ Supabase update error:', error);
+                throw error;
+            }
+            console.log('✓ Order updated in Supabase');
+        }
+
+        // Update the local copy as well (useful for fallback or debugging)
         if (status) {
             ordersData.orders[orderIndex].status = status;
         }
@@ -776,12 +910,14 @@ app.put('/api/update-order', async (req, res) => {
         }
         ordersData.orders[orderIndex].updatedAt = new Date();
 
-        try {
-            writeOrdersFile(ordersData);
-            console.log('✓ Order saved to file successfully');
-        } catch (writeError) {
-            console.error('✗ Error writing to orders file:', writeError);
-            throw writeError;
+        if (!supabase) {
+            try {
+                writeOrdersFile(ordersData);
+                console.log('✓ Order saved to file successfully');
+            } catch (writeError) {
+                console.error('✗ Error writing to orders file:', writeError);
+                throw writeError;
+            }
         }
 
         // Send email to user if requested
@@ -1086,6 +1222,42 @@ app.get('/api/users', (req, res) => {
     }
 });
 
+// Debug: return the last-written user from users.json (non-sensitive fields only)
+app.get('/api/debug/last-user', (req, res) => {
+    try {
+        // Require API key for access
+        const providedKey = (req.headers['x-api-key'] || req.query.api_key || '').toString();
+        if (!RND_API_KEY) {
+            console.warn('Debug endpoint access attempted but RND_API_KEY not configured');
+            return res.status(403).json({ error: 'Debug endpoint not configured' });
+        }
+        if (!providedKey || providedKey !== RND_API_KEY) {
+            console.warn('Unauthorized debug last-user access attempt from', req.ip || req.connection.remoteAddress);
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const usersData = readUsersFile();
+        const users = Array.isArray(usersData.users) ? usersData.users : [];
+        if (users.length === 0) return res.status(404).json({ error: 'No users found' });
+        const last = users[users.length - 1];
+
+        // Return sanitized user object (do not expose passwords or hashes)
+        const safeUser = Object.assign({}, last);
+        delete safeUser.password;
+        delete safeUser.passwordHash;
+
+        console.log('Debug last-user: returning last user for', safeUser.email || safeUser.name || '<unknown>');
+
+        return res.json({
+            message: 'Last user (most recently registered)',
+            user: safeUser
+        });
+    } catch (error) {
+        console.error('Debug last-user error:', error);
+        res.status(500).json({ error: 'Server error reading users' });
+    }
+});
+
 // Get all orders (admin endpoint)
 app.get('/api/orders', (req, res) => {
     try {
@@ -1156,8 +1328,9 @@ app.get('*', (req, res) => {
 // Start server
 app.listen(PORT, async () => {
     console.log(`LogiFlow Server running on http://localhost:${PORT}`);
-    console.log('Email service configured for:', 'ayomideoluniyi49@gmail.com');
+    console.log('Email service configured for:', EMAIL_USER || 'not-set');
+    console.log('Using JSON file storage (MongoDB disabled)');
     
-    // Connect to MongoDB
-    await connectMongoDB();
+    // Connect to MongoDB - DISABLED
+    // await connectMongoDB();
 });

@@ -567,12 +567,15 @@ async function submitQuoteWithPicture() {
         } else {
             const text = await response.text();
             console.error('Non-JSON response from /create-order', response.status, text);
-            alert('Error creating order. Server returned non-JSON response — check console network tab.');
+            if (typeof showToast === 'function') showToast('Error sending order. Returning to home.');
+            window.location.href = 'index.html';
             return;
         }
 
         if (!response.ok) {
-            alert(data.error || 'Failed to create order. Please try again.');
+            console.error('Create order failed:', data);
+            if (typeof showToast === 'function') showToast(data.error || 'Failed to create order. Returning to home.');
+            window.location.href = 'index.html';
             return;
         }
 
@@ -605,16 +608,21 @@ async function submitQuoteWithPicture() {
             senderName: formData.senderName
         });
 
-        // Show success message
-        alert(`✅ Order submitted successfully!\n\n⏳ STATUS: PENDING CONFIRMATION\n\nYour package pictures have been uploaded. Our admin team will review and confirm your order within 2-4 hours.\n\n📦 Tracking ID: ${data.order.trackingId}\n\nA confirmation email has been sent to ${formData.senderEmail}.\n\nYou will receive another email once your order is confirmed.`);
-
+        // Show success message briefly then return to home
+        if (typeof showToast === 'function') {
+            showToast('✅ Order submitted successfully. Returning home...');
+        } else {
+            console.log('Order accepted by server:', data.order && data.order.trackingId);
+        }
         // Close quote form and reset
         closeQuoteForm();
         resetQuoteForm();
+        setTimeout(() => { window.location.href = 'index.html'; }, 1600);
 
     } catch (error) {
         console.error('Error creating order:', error);
-        alert(`⚠️ Error creating order.\n\n${error.message}\n\nPlease try again.`);
+        if (typeof showToast === 'function') showToast('⚠️ Error creating order. Returning to home...');
+        setTimeout(() => { window.location.href = 'index.html'; }, 800);
     }
 }
 
@@ -993,7 +1001,10 @@ if (uploadForm) {
 }
 
 // Server Configuration
-const SERVER_URL = 'https://logistic-web-6fxn.onrender.com/api';
+// Use localhost for local development, Render for production
+const SERVER_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+    ? 'http://localhost:3000/api'
+    : 'https://logistic-web-6fxn.onrender.com/api';
 
 // User Menu and Auth Functions
 let currentUser = null;
@@ -1153,7 +1164,7 @@ if (loginForm) {
             }
         } catch (error) {
             console.error('Login error:', error);
-            alert('Connection error. Make sure the API at https://logistic-web-6fxn.onrender.com is reachable');
+            alert('Connection error. Make sure the API is reachable (localhost:3000 or https://logistic-web-6fxn.onrender.com');
         }
     });
 }
@@ -1226,7 +1237,7 @@ if (registerForm) {
             }
         } catch (error) {
             console.error('Register error:', error);
-            alert('Connection error. Make sure the API at https://logistic-web-6fxn.onrender.com is reachable');
+            alert('Connection error. Make sure the API is reachable (localhost:3000 or https://logistic-web-6fxn.onrender.com');
         }
     });
 }
