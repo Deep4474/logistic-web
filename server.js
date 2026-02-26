@@ -12,18 +12,35 @@ const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 require('dotenv').config({ path: '.env.local' });
 
-// initialize Supabase client if environment provides the variables
+// initialize Supabase client if environment provides valid variables
 // support multiple key names so we can use anon or service role keys
 const SUPABASE_URL = process.env.SUPABASE_URL;
 // prefer explicit SUPABASE_KEY, fall back to anon or service role names
 const SUPABASE_KEY = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-let supabase = null;
-if (SUPABASE_URL && SUPABASE_KEY) {
-    supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-    console.log('Supabase client initialized using ' +
-        (process.env.SUPABASE_KEY ? 'SUPABASE_KEY' : process.env.SUPABASE_ANON_KEY ? 'SUPABASE_ANON_KEY' : 'SUPABASE_SERVICE_ROLE_KEY')
-    );
+
+// validate that SUPABASE_URL is a real URL (not a placeholder or invalid format)
+function isValidSupabaseUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    // check if it looks like a placeholder (contains angle brackets, parentheses, or "<YOUR_")
+    if (url.includes('<') || url.includes('>') || url.includes('(') || url.includes(')')) return false;
+    // must match http:// or https://
+    return /^https?:\/\//i.test(url);
 }
+
+let supabase = null;
+if (isValidSupabaseUrl(SUPABASE_URL) && SUPABASE_KEY) {
+    try {
+        supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+        console.log('Supabase client initialized using ' +
+            (process.env.SUPABASE_KEY ? 'SUPABASE_KEY' : process.env.SUPABASE_ANON_KEY ? 'SUPABASE_ANON_KEY' : 'SUPABASE_SERVICE_ROLE_KEY')
+        );
+    } catch (err) {
+        console.warn('Failed to initialize Supabase:', err.message);
+    }
+} else if (SUPABASE_URL && !isValidSupabaseUrl(SUPABASE_URL)) {
+    console.log('SUPABASE_URL is not a valid URL (placeholder?); skipping Supabase initialization');
+}
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
