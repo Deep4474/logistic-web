@@ -1,1439 +1,1144 @@
-// Hamburger Menu Toggle
-const hamburger = document.querySelector('.hamburger');
-const navMenu = document.querySelector('.nav-menu');
-
-if (hamburger) {
-    hamburger.addEventListener('click', () => {
-        hamburger.classList.toggle('active');
-        navMenu.classList.toggle('active');
-    });
-}
-
-// Close menu when a link is clicked
-document.querySelectorAll('.nav-menu a').forEach(link => {
-    link.addEventListener('click', () => {
-        hamburger.classList.remove('active');
-        navMenu.classList.remove('active');
-    });
-});
-
-// Tracking Functionality
-const trackBtn = document.getElementById('trackBtn');
-const trackingInput = document.getElementById('trackingInput');
-const trackingResult = document.getElementById('trackingResult');
-const resultTitle = document.getElementById('resultTitle');
-const resultMessage = document.getElementById('resultMessage');
-const finalStep = document.getElementById('finalStep');
-const finalStepText = document.getElementById('finalStepText');
-
-if (trackBtn) {
-    trackBtn.addEventListener('click', trackShipment);
-    trackingInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') trackShipment();
-    });
-}
-
-function trackShipment() {
-    const trackingNumber = trackingInput.value.trim();
-
-    if (!trackingNumber) {
-        alert('Please enter a tracking number');
-        return;
-    }
-
-    // Validate tracking number format (TRK-XXXXX format from server)
-    if (!trackingNumber.startsWith('TRK-') && !trackingNumber.startsWith('LF')) {
-        alert('Invalid tracking number. Expected format: TRK-100001 or LF123456789');
-        return;
-    }
-
-    // Try to fetch from server first
-    if (trackingNumber.startsWith('TRK-')) {
-        fetchTrackingFromServer(trackingNumber);
-    } else {
-        // Fallback for demo tracking numbers
-        showDemoTracking(trackingNumber);
-    }
-}
-
-async function fetchTrackingFromServer(trackingId) {
-    try {
-        const response = await fetch(`${SERVER_URL}/track/${trackingId}`);
-        const data = await response.json();
-
-        if (response.ok) {
-            const tracking = data.tracking;
-            
-            // Display server tracking data
-            resultTitle.textContent = `📦 Tracking #${trackingId}`;
-            
-            // Update final step based on status
-            const status = tracking.status;
-            if (status === 'Confirmed') {
-                finalStep.classList.add('completed');
-                finalStepText.textContent = 'Confirmed & Processing';
-            } else if (status === 'Delivered') {
-                finalStep.classList.add('completed');
-                finalStepText.textContent = 'Delivered';
-            } else if (status === 'Out for Delivery') {
-                finalStepText.textContent = 'Out for Delivery';
-            } else if (status === 'Pending') {
-                finalStepText.textContent = '⏳ Pending Confirmation';
-            } else {
-                finalStepText.textContent = 'In Transit';
-            }
-            
-            // Create detailed message with all information
-            let message = `
-                <div style="text-align: left; background: white; padding: 20px; border-radius: 10px; margin-top: 15px;">
-                    <div style="margin: 15px 0; padding: 15px; background: #f5f5f5; border-left: 4px solid #667eea; border-radius: 5px;">
-                        <p><strong>📦 Order Details</strong></p>
-                        <p style="margin: 8px 0;">Order ID: <strong>${tracking.orderId}</strong></p>
-                        <p style="margin: 8px 0;">Service: <strong>${tracking.service}</strong></p>
-                        <p style="margin: 8px 0;">Price: <strong>${tracking.priceRange || 'Standard'}</strong></p>
-                        <p style="margin: 8px 0;">Created: <strong>${new Date(tracking.createdAt).toLocaleDateString()}</strong></p>
-                    </div>
-                    
-                    <div style="margin: 15px 0; padding: 15px; background: #f5f5f5; border-left: 4px solid #ff9800; border-radius: 5px;">
-                        <p><strong>📍 Status: <span style="color: ${status === 'Confirmed' ? '#4caf50' : status === 'Pending' ? '#ff9800' : '#2196f3'}">${status}</span></strong></p>
-                        <p style="margin: 8px 0; font-size: 12px;">Last updated: ${new Date(tracking.createdAt).toLocaleString()}</p>
-                    </div>
-                    
-                    <div style="margin: 15px 0; padding: 15px; background: #e8f5e9; border-left: 4px solid #4caf50; border-radius: 5px;">
-                        <p><strong>📤 From (Sender)</strong></p>
-                        <p style="margin: 5px 0; line-height: 1.6;">${tracking.senderAddress}</p>
-                    </div>
-                    
-                    <div style="margin: 15px 0; padding: 15px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 5px;">
-                        <p><strong>📥 To (Receiver)</strong></p>
-                        <p style="margin: 5px 0; line-height: 1.6;">${tracking.receiverAddress}</p>
-                    </div>
-                    
-                    ${tracking.pictureUrl ? `
-                    <div style="margin: 15px 0; padding: 15px; background: #f5f5f5; border-left: 4px solid #9c27b0; border-radius: 5px;">
-                        <p><strong>📸 Package Picture</strong></p>
-                        <img src="${tracking.pictureUrl}" alt="Package" style="max-width: 100%; max-height: 250px; margin-top: 10px; border-radius: 5px; cursor: pointer;" onclick="openImageModal('${tracking.pictureUrl}')">
-                    </div>
-                    ` : ''}
-                </div>
-            `;
-            resultMessage.innerHTML = message;
-        } else {
-            alert(data.error || 'Tracking number not found');
-            return;
-        }
-    } catch (error) {
-        console.error('Tracking error:', error);
-        alert('Could not fetch tracking information from server');
-        return;
-    }
-
-    trackingResult.classList.add('active');
-    trackingResult.scrollIntoView({ behavior: 'smooth' });
-}
-
-// Image Modal Functions
-function openImageModal(imagePath) {
-    const imageModal = document.getElementById('imageModal');
-    const modalImage = document.getElementById('modalImage');
-    if (imageModal && modalImage) {
-        modalImage.src = imagePath;
-        imageModal.classList.remove('image-modal-hidden');
-        imageModal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
-}
-
-function closeImageModal() {
-    const imageModal = document.getElementById('imageModal');
-    if (imageModal) {
-        imageModal.classList.add('image-modal-hidden');
-        imageModal.classList.remove('active');
-        document.body.style.overflow = 'auto';
-    }
-}
-
-// Close image modal when clicking outside
-window.addEventListener('click', (event) => {
-    const imageModal = document.getElementById('imageModal');
-    if (imageModal && event.target === imageModal) {
-        closeImageModal();
-    }
-});
-
-// Close image modal with Escape key
-document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {
-        const imageModal = document.getElementById('imageModal');
-        if (imageModal && !imageModal.classList.contains('image-modal-hidden')) {
-            closeImageModal();
-        }
-    }
-});
-
-function showDemoTracking(trackingNumber) {
-    // Fallback demo tracking for testing
-    const trackingData = {
-        status: 'In Transit',
-        origin: 'New York, NY',
-        destination: 'Los Angeles, CA',
-        estimatedDelivery: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-        carrier: 'LogiFlow Express'
-    };
-
-    // Display results
-    resultTitle.textContent = `Tracking #${trackingNumber}`;
-    resultMessage.textContent = `Status: ${trackingData.status} | Estimated Delivery: ${trackingData.estimatedDelivery}`;
-    
-    // Determine final step based on status
-    if (trackingData.status === 'Delivered') {
-        finalStep.classList.add('completed');
-        finalStepText.textContent = 'Delivered';
-    } else if (trackingData.status === 'Out for Delivery') {
-        finalStepText.textContent = 'Out for Delivery';
-    } else {
-        finalStepText.textContent = 'Arriving Soon';
-    }
-
-    trackingResult.classList.add('active');
-    trackingResult.scrollIntoView({ behavior: 'smooth' });
-}
-
-// Contact Form Submission
-const contactForm = document.getElementById('contactForm');
-
-if (contactForm) {
-    contactForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        
-        // Get form data
-        const formData = new FormData(contactForm);
-        const name = contactForm.querySelector('input[type="text"]').value;
-        const email = contactForm.querySelector('input[type="email"]').value;
-        const subject = contactForm.querySelectorAll('input[type="text"]')[1].value;
-        const message = contactForm.querySelector('textarea').value;
-
-        // Validate form
-        if (!name || !email || !subject || !message) {
-            alert('Please fill in all fields');
-            return;
-        }
-
-        // Validate email
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            alert('Please enter a valid email address');
-            return;
-        }
-
-        // Simulate form submission
-        console.log('Form Data:', { name, email, subject, message });
-        
-        // Show success message
-        alert(`Thank you, ${name}! Your message has been sent successfully. We'll contact you soon.`);
-        
-        // Reset form
-        contactForm.reset();
-    });
-}
-
-// Smooth scroll behavior for CTA button
-const ctaButton = document.querySelector('.hero .btn-primary');
-if (ctaButton) {
-    ctaButton.addEventListener('click', () => {
-        document.getElementById('services').scrollIntoView({ behavior: 'smooth' });
-    });
-}
-
-// Navbar scroll effect
-window.addEventListener('scroll', () => {
-    const navbar = document.querySelector('.navbar');
-    if (window.scrollY > 50) {
-        navbar.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
-    } else {
-        navbar.style.boxShadow = 'var(--box-shadow)';
-    }
-});
-
-// Intersection Observer for fade-in animations
-const observerOptions = {
-    threshold: 0.1,
-    rootMargin: '0px 0px -50px 0px'
-};
-
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.style.opacity = '1';
-            entry.target.style.transform = 'translateY(0)';
-        }
-    });
-}, observerOptions);
-
-// Observe service cards and testimonial cards
-document.querySelectorAll('.service-card, .testimonial-card').forEach(card => {
-    card.style.opacity = '0';
-    card.style.transform = 'translateY(20px)';
-    card.style.transition = 'opacity 0.6s, transform 0.6s';
-    observer.observe(card);
-});
-
-// Initialize AOS-like effect
 document.addEventListener('DOMContentLoaded', () => {
-    // Add animation to stat boxes
-    const statBoxes = document.querySelectorAll('.stat-box');
-    statBoxes.forEach((box, index) => {
-        box.style.opacity = '0';
-        box.style.animation = `slideIn 0.6s ease-out ${index * 0.1}s forwards`;
-    });
-});
-
-// Add keyframe animation
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-`;
-document.head.appendChild(style);
-
-// Active link highlighting
-const sections = document.querySelectorAll('section');
-const navLinks = document.querySelectorAll('.nav-menu a');
-
-window.addEventListener('scroll', () => {
-    let current = '';
-    sections.forEach(section => {
-        const sectionTop = section.offsetTop;
-        const sectionHeight = section.clientHeight;
-        if (pageYOffset >= sectionTop - 200) {
-            current = section.getAttribute('id');
-        }
-    });
-
-    navLinks.forEach(link => {
-        link.style.color = 'var(--text-dark)';
-        if (link.getAttribute('href') === '#' + current) {
-            link.style.color = 'var(--primary-color)';
-        }
-    });
-});
-
-// Get Started button scroll
-if (ctaButton) {
-    ctaButton.addEventListener('click', (e) => {
-        e.preventDefault();
-        document.getElementById('services').scrollIntoView({ behavior: 'smooth' });
-    });
-}
-
-// Quote Form Functions - Multi-Step Flow
-function openQuoteForm(serviceName, price) {
-    // Check if user is registered/logged in
-    const currentUser = localStorage.getItem('currentUser');
-    
-    if (!currentUser) {
-        alert('⚠️ Registration Required!\n\nYou must register and login to place an order.\n\n1. Click "Register" button in the top menu\n2. Create your account\n3. Login with your credentials\n4. Then you can place an order');
+    const yearEl = document.getElementById('year');
+    if (yearEl) yearEl.textContent = new Date().getFullYear();
+  
+    const navToggle = document.querySelector('.nav-toggle');
+    const navLinks = document.querySelector('.nav-links');
+  
+    if (navToggle && navLinks) {
+      navToggle.addEventListener('click', () => {
+        navLinks.classList.toggle('open');
         
-        // Open the registration modal
-        const registerModal = document.getElementById('registerModal');
-        if (registerModal) {
-            registerModal.classList.add('active');
-            document.body.style.overflow = 'hidden';
+        // Close user menu when hamburger menu opens
+        const userMenu = document.querySelector('.nav-user-menu');
+        const userBtn = document.querySelector('.nav-user-button');
+        if (userMenu && userMenu.classList.contains('open')) {
+          userMenu.classList.remove('open');
+          if (userBtn) userBtn.setAttribute('aria-expanded', 'false');
         }
-        return;
+      });
+  
+      navLinks.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+          navLinks.classList.remove('open');
+        });
+      });
     }
 
-    const modal = document.getElementById('quoteModal');
-    const serviceNameField = document.getElementById('serviceName');
-    const servicePriceField = document.getElementById('servicePrice');
-
-    if (modal && serviceNameField && servicePriceField) {
-        serviceNameField.value = serviceName;
-        servicePriceField.value = price;
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-        
-        // Show step 1 (quote form)
-        showQuoteStep();
-    }
-}
-
-// Multi-Step Form Navigation
-function showQuoteStep() {
-    const quoteFormStep = document.getElementById('quoteFormStep');
-    const uploadStep = document.getElementById('uploadStep');
-    const submitStep = document.getElementById('submitStep');
+    // --- User Menu Toggle ---
+    const userMenuBtn = document.getElementById('userMenuBtn');
+    const userMenu = document.getElementById('userMenu');
     
-    if (quoteFormStep) quoteFormStep.style.display = 'block';
-    if (uploadStep) uploadStep.style.display = 'none';
-    if (submitStep) submitStep.style.display = 'none';
-}
+    if (userMenuBtn && userMenu) {
+      userMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        userMenu.classList.toggle('open');
+        userMenuBtn.setAttribute('aria-expanded', userMenu.classList.contains('open'));
+      });
 
-function proceedToUploadStep() {
-    // Validate quote form
-    const senderName = document.getElementById('senderName').value.trim();
-    const senderEmail = document.getElementById('senderEmail').value.trim();
-    const senderPhone = document.getElementById('senderPhone').value.trim();
-    const senderAddress = document.getElementById('senderAddress').value.trim();
-    const receiverName = document.getElementById('receiverName').value.trim();
-    const receiverEmail = document.getElementById('receiverEmail').value.trim();
-    const receiverPhone = document.getElementById('receiverPhone').value.trim();
-    const receiverAddress = document.getElementById('receiverAddress').value.trim();
+      // Close menu when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!userMenu.contains(e.target) && !userMenuBtn.contains(e.target)) {
+          userMenu.classList.remove('open');
+          userMenuBtn.setAttribute('aria-expanded', 'false');
+        }
+      });
 
-    // Validate all required fields
-    if (!senderName || !senderEmail || !senderPhone || !senderAddress) {
-        alert('Please fill in all sender address fields');
-        return;
+      // Menu item click handlers
+      const profileLink = document.getElementById('profile-link');
+      const ordersLink = document.getElementById('orders-link');
+      const notificationsLink = document.getElementById('notifications-link');
+      const logoutLink = document.getElementById('logout-link');
+
+      if (profileLink) {
+        profileLink.addEventListener('click', () => {
+          console.log('Profile clicked');
+          userMenu.classList.remove('open');
+          window.location.href = 'auth.html';
+        });
+      }
+
+      if (ordersLink) {
+        ordersLink.addEventListener('click', () => {
+          console.log('Order list clicked');
+          userMenu.classList.remove('open');
+          const user = getCurrentUser();
+          if (user) {
+            openNavPanel('orders', user);
+          }
+        });
+      }
+
+      if (notificationsLink) {
+        notificationsLink.addEventListener('click', async () => {
+          console.log('Notifications clicked');
+          userMenu.classList.remove('open');
+          const user = getCurrentUser();
+          if (user) {
+            await openNavPanel('notifications', user);
+          }
+        });
+      }
+
+      if (logoutLink) {
+        logoutLink.addEventListener('click', () => {
+          console.log('Logout clicked');
+          // Clear user session and redirect
+          localStorage.removeItem('logisticsCurrentUser');
+          window.location.href = 'auth.html';
+        });
+      }
     }
-    if (!receiverName || !receiverEmail || !receiverPhone || !receiverAddress) {
-        alert('Please fill in all receiver address fields');
-        return;
+
+    // --- Simple auth-aware nav (show user icon when logged in) ---
+    function getCurrentUser() {
+      try {
+        return JSON.parse(localStorage.getItem('logisticsCurrentUser')) || null;
+      } catch {
+        return null;
+      }
     }
 
-    // Validate emails
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(senderEmail)) {
-        alert('Please enter a valid sender email address');
-        return;
-    }
-    if (!emailRegex.test(receiverEmail)) {
-        alert('Please enter a valid receiver email address');
-        return;
-    }
-
-    // Validate phones
-    if (senderPhone.length < 10) {
-        alert('Please enter a valid sender phone number');
-        return;
-    }
-    if (receiverPhone.length < 10) {
-        alert('Please enter a valid receiver phone number');
-        return;
+    function getOrdersForUser(user) {
+      if (!user || !user.email) return [];
+      try {
+        const all = JSON.parse(localStorage.getItem('logisticsOrders')) || [];
+        return all.filter(o => o.email === user.email);
+      } catch {
+        return [];
+      }
     }
 
-    // Store form data
-    window.multiStepFormData = {
-        serviceName: document.getElementById('serviceName').value,
-        servicePrice: document.getElementById('servicePrice').value,
-        senderName,
-        senderEmail,
-        senderPhone,
-        senderAddress,
-        receiverName,
-        receiverEmail,
-        receiverPhone,
-        receiverAddress,
-        message: document.getElementById('message').value.trim()
-    };
+    function getNotificationsForUser(user) {
+      // Return empty array initially, will be populated by fetchNotificationsForUser
+      return [];
+    }
 
-    // Show upload step
-    const quoteFormStep = document.getElementById('quoteFormStep');
-    const uploadStep = document.getElementById('uploadStep');
-    if (quoteFormStep) quoteFormStep.style.display = 'none';
-    if (uploadStep) uploadStep.style.display = 'block';
-}
+    async function fetchNotificationsForUser(user) {
+      try {
+        // Fetch from the main server API endpoint
+        const apiUrl = 'http://localhost:3000/api/notifications';
+        const res = await fetch(apiUrl);
+        
+        if (!res.ok) {
+          console.warn(`Notifications API responded with status ${res.status}`);
+          return [];
+        }
+        
+        const contentType = res.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          console.warn('Notifications API response is not JSON');
+          return [];
+        }
+        
+        const data = await res.json();
+        const allNotifications = Array.isArray(data.notifications) ? data.notifications : [];
+        
+        // Filter notifications for current user by email
+        if (user && user.email) {
+          return allNotifications.filter(notif => notif.user_email === user.email);
+        }
+        
+        return [];
+      } catch (err) {
+        console.warn('Could not fetch notifications from API:', err.message);
+        // Return empty array with helpful message instead of error
+        return [];
+      }
+    }
 
-function backToQuoteStep() {
-    const quoteFormStep = document.getElementById('quoteFormStep');
-    const uploadStep = document.getElementById('uploadStep');
-    if (quoteFormStep) quoteFormStep.style.display = 'block';
-    if (uploadStep) uploadStep.style.display = 'none';
-}
+    async function openNavPanel(kind, user) {
+      const existing = document.querySelector('.nav-panel-backdrop');
+      if (existing) existing.remove();
 
-function backToUploadStep() {
-    const uploadStep = document.getElementById('uploadStep');
-    const submitStep = document.getElementById('submitStep');
-    if (uploadStep) uploadStep.style.display = 'block';
-    if (submitStep) submitStep.style.display = 'none';
-}
+      const backdrop = document.createElement('div');
+      backdrop.className = 'nav-panel-backdrop';
 
-// Handle quote upload form submission
-const quoteUploadForm = document.getElementById('quoteUploadForm');
-if (quoteUploadForm) {
-    quoteUploadForm.addEventListener('submit', (e) => {
-        e.preventDefault();
+      const panel = document.createElement('div');
+      panel.className = 'nav-panel';
 
-        const pic1 = document.getElementById('quotePic1').files[0];
-        const pic2 = document.getElementById('quotePic2').files[0];
-        const pic3 = document.getElementById('quotePic3').files[0];
+      const isOrders = kind === 'orders';
+      const title = isOrders ? 'Order list' : 'Notifications';
+      const subtitle = isOrders
+        ? 'Recent SwiftLogix logistics bookings.'
+        : 'Updates about your logistics activity.';
 
-        if (!pic1 || !pic2 || !pic3) {
-            alert('Please upload all 3 pictures');
-            return;
+      // Show loading state
+      panel.innerHTML = `
+        <header class="nav-panel-header">
+          <div>
+            <div class="nav-panel-title">${title}</div>
+          </div>
+          <button class="nav-panel-close" type="button" aria-label="Close">&times;</button>
+        </header>
+        <p class="nav-panel-subtitle">${subtitle}</p>
+        <ul class="nav-panel-list">
+          <div class="nav-panel-empty">Loading...</div>
+        </ul>
+      `;
+
+      backdrop.appendChild(panel);
+      document.body.appendChild(backdrop);
+
+      const close = () => backdrop.remove();
+      backdrop.addEventListener('click', e => {
+        if (e.target === backdrop) close();
+      });
+      const closeBtn = panel.querySelector('.nav-panel-close');
+      if (closeBtn) closeBtn.addEventListener('click', close);
+
+      // Fetch items
+      let items = [];
+      if (isOrders) {
+        items = getOrdersForUser(user);
+      } else {
+        items = await fetchNotificationsForUser(user);
+      }
+
+      const listEl = panel.querySelector('.nav-panel-list');
+      listEl.innerHTML = '';
+
+      if (items.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'nav-panel-empty';
+        empty.textContent = isOrders
+          ? 'You have not placed any logistics orders yet.'
+          : 'No notifications yet. We will notify you when your orders are updated.';
+        listEl.appendChild(empty);
+      } else {
+        items.forEach(item => {
+          const li = document.createElement('li');
+          li.className = 'nav-panel-item';
+          if (isOrders) {
+            li.innerHTML = `
+              <h4>${item.serviceLabel || 'Logistics order'}</h4>
+              <p>${item.route || 'Custom route'} • ${item.speedLabel || 'Standard speed'}</p>
+              <div class="nav-panel-meta">
+                <span>₦${Number(item.price || 0).toLocaleString()}</span>
+                <span>${item.createdAt || ''}</span>
+              </div>
+            `;
+          } else {
+            const createdAt = item.created_at ? new Date(item.created_at).toLocaleDateString() : '';
+            const linkHtml = item.link_url ? 
+              `<a href="${item.link_url}" class="nav-panel-link" target="_blank">View Details →</a>` : '';
+            
+            li.innerHTML = `
+              <h4>${item.title}</h4>
+              <p>${item.body || item.message || 'No content'}</p>
+              <div class="nav-panel-meta">
+                <span class="nav-panel-badge">${item.type || 'Info'}</span>
+                <span>${createdAt}</span>
+              </div>
+              ${linkHtml}
+            `;
+          }
+          listEl.appendChild(li);
+        });
+      }
+    }
+
+    function setupUserNav() {
+      const user = getCurrentUser();
+      const navLinksEl = document.querySelector('.nav-links');
+      if (!navLinksEl) return;
+
+      const authLink = Array.from(navLinksEl.querySelectorAll('a'))
+        .find(a => a.getAttribute('href') === 'auth.html');
+
+      let userWrapper = document.querySelector('.nav-user');
+
+      if (!user) {
+        // Not logged in: show Login/Register link, remove user menu if present
+        if (authLink) authLink.style.display = '';
+        if (userWrapper && userWrapper.parentElement) {
+          userWrapper.parentElement.removeChild(userWrapper);
+        }
+        return;
+      }
+
+      // Logged in: hide Login/Register link
+      if (authLink) authLink.style.display = 'none';
+
+      // Create user menu if it doesn't exist yet
+      if (!userWrapper) {
+        userWrapper = document.createElement('div');
+        userWrapper.className = 'nav-user';
+        userWrapper.innerHTML = `
+          <button class="nav-user-button" type="button" aria-haspopup="true" aria-expanded="false">
+            <span class="nav-user-avatar">${(user.name || user.email || 'U').charAt(0).toUpperCase()}</span>
+          </button>
+          <div class="nav-user-menu" role="menu">
+            <button class="nav-user-item" data-nav="profile" type="button">Profile</button>
+            <button class="nav-user-item" data-nav="orders" type="button">Order list</button>
+            <button class="nav-user-item" data-nav="notifications" type="button">Notifications</button>
+            <button class="nav-user-item nav-user-logout" data-nav="logout" type="button">Logout</button>
+          </div>
+        `;
+        navLinksEl.appendChild(userWrapper);
+
+        const toggleBtn = userWrapper.querySelector('.nav-user-button');
+        const menu = userWrapper.querySelector('.nav-user-menu');
+
+        if (toggleBtn && menu) {
+          toggleBtn.addEventListener('click', () => {
+            const isOpen = menu.classList.toggle('open');
+            toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            
+            // Close main nav menu when user menu opens
+            if (isOpen) {
+              const navLinksMenu = document.querySelector('.nav-links');
+              if (navLinksMenu && navLinksMenu.classList.contains('open')) {
+                navLinksMenu.classList.remove('open');
+              }
+            }
+          });
         }
 
-        // Store pictures in window object for final submission
-        window.multiStepFormData.pictures = {
-            pic1, pic2, pic3
+        // Handle menu item clicks
+        userWrapper.querySelectorAll('.nav-user-item').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const action = btn.getAttribute('data-nav');
+            if (action === 'profile') {
+              window.location.href = 'auth.html';
+            } else if (action === 'orders') {
+              await openNavPanel('orders', user);
+            } else if (action === 'notifications') {
+              await openNavPanel('notifications', user);
+            } else if (action === 'logout') {
+              localStorage.removeItem('logisticsCurrentUser');
+              window.location.reload();
+            }
+          });
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+          if (!userWrapper.contains(e.target)) {
+            const menuEl = userWrapper.querySelector('.nav-user-menu');
+            const btnEl = userWrapper.querySelector('.nav-user-button');
+            if (menuEl && menuEl.classList.contains('open')) {
+              menuEl.classList.remove('open');
+              if (btnEl) btnEl.setAttribute('aria-expanded', 'false');
+            }
+          }
+        });
+      }
+    }
+
+    setupUserNav();
+  
+    function updateTimelineWithStatus(status) {
+      const steps = Array.from(document.querySelectorAll('.timeline-step'));
+      if (!steps.length) return;
+
+      const normalized = String(status || '').toLowerCase();
+
+      // Reset all steps
+      steps.forEach(step => {
+        step.classList.remove('complete', 'active');
+      });
+
+      let activeIndex = 0;
+      if (normalized.includes('pending') || normalized.includes('created')) {
+        activeIndex = 0;
+      } else if (normalized.includes('pickup') || normalized.includes('picked')) {
+        activeIndex = 1;
+      } else if (normalized.includes('transit')) {
+        activeIndex = 2;
+      } else if (normalized.includes('out for')) {
+        activeIndex = 3;
+      } else if (normalized.includes('deliver')) {
+        activeIndex = 4;
+      } else {
+        activeIndex = 2;
+      }
+
+      steps.forEach((step, index) => {
+        if (index < activeIndex) {
+          step.classList.add('complete');
+        } else if (index === activeIndex) {
+          step.classList.add('active');
+        }
+      });
+    }
+
+    function setupTrackForm(formId, inputId, resultId) {
+      const form = document.getElementById(formId);
+      const input = document.getElementById(inputId);
+      const result = document.getElementById(resultId);
+      if (!form || !input || !result) return;
+
+      // Support both the homepage tracking section and the dedicated tracking page
+      const isTrackPage = formId === 'trackPageForm';
+
+      const infoEl = document.getElementById(isTrackPage ? 'trackPageInfo' : 'trackInfo');
+      const infoTitle = document.getElementById(isTrackPage ? 'trackPageTitle' : 'trackInfoTitle');
+      const infoStatus = document.getElementById(isTrackPage ? 'trackPageStatus' : 'trackInfoStatus');
+      const infoMeta = document.getElementById(isTrackPage ? 'trackPageMeta' : 'trackInfoMeta');
+      const infoContact = document.getElementById(isTrackPage ? 'trackPageContact' : 'trackInfoContact');
+      const mapFrame = document.getElementById(isTrackPage ? 'trackPageMap' : 'trackMapFrame');
+      const mapContainer = document.getElementById(isTrackPage ? 'trackPageMapContainer' : 'trackMapContainer');
+
+      function hideExtra() {
+        if (infoEl) infoEl.hidden = true;
+        if (infoStatus) infoStatus.textContent = '';
+        if (infoMeta) infoMeta.textContent = '';
+        if (infoContact) infoContact.textContent = '';
+        if (mapFrame) mapFrame.src = '';
+      }
+
+      form.addEventListener('submit', e => {
+        e.preventDefault();
+        const value = input.value.trim();
+        if (!value) {
+          result.textContent = 'Please enter a tracking ID.';
+          hideExtra();
+          return;
+        }
+
+        result.textContent = 'Looking up your shipment...';
+        hideExtra();
+
+        fetch(`/api/track/${encodeURIComponent(value)}`)
+          .then(res => res.json().catch(() => null))
+          .then(data => {
+            if (!data || !data.ok || !data.order) {
+              result.textContent =
+                (data && data.message) ||
+                'We could not find this tracking ID. Please confirm and try again.';
+              return;
+            }
+
+            const order = data.order;
+            const status = order.status || 'Pending';
+            const service = order.service_label || 'Logistics shipment';
+            const route = order.route || 'Custom route';
+
+            result.textContent = `Status: ${status} • ${service} • ${route}`;
+
+            updateTimelineWithStatus(status);
+
+            if (infoEl && infoTitle && infoStatus && infoMeta && infoContact) {
+              infoTitle.textContent = `Shipment ${order.tracking_id || value}`;
+              infoStatus.textContent = `Current status: ${status}`;
+
+              const created = order.created_at
+                ? new Date(order.created_at).toLocaleString()
+                : '';
+
+              infoMeta.textContent = [
+                service,
+                route,
+                order.price != null ? `₦${Number(order.price).toLocaleString()}` : '',
+                created ? `Created: ${created}` : ''
+              ]
+                .filter(Boolean)
+                .join(' • ');
+
+              const phones = [
+                order.contact_phone ? `Sender: ${order.contact_phone}` : '',
+                order.receiver_phone ? `Receiver: ${order.receiver_phone}` : ''
+              ]
+                .filter(Boolean)
+                .join(' • ');
+
+              const email = order.user_email || order.email || '';
+              infoContact.textContent = [phones, email].filter(Boolean).join(' • ');
+
+              infoEl.hidden = false;
+            }
+
+            if (mapFrame && mapContainer) {
+              if (route && route.trim()) {
+                const q = encodeURIComponent(route);
+                mapFrame.src = `https://www.google.com/maps?q=${q}&output=embed`;
+                mapContainer.style.display = '';
+              } else {
+                mapFrame.src = '';
+                mapContainer.style.display = 'none';
+              }
+            }
+
+          // After a successful lookup on the homepage forms,
+          // turn the button into a link to the full tracking page.
+          if (!isTrackPage) {
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) {
+              submitBtn.textContent = 'Track your package';
+              submitBtn.type = 'button';
+              submitBtn.onclick = () => {
+                window.location.href = `track.html?tracking=${encodeURIComponent(value)}`;
+              };
+            }
+          }
+          })
+          .catch(() => {
+            result.textContent =
+              'There was a problem reaching the tracking server. Please try again in a moment.';
+          });
+      });
+    }
+  
+    setupTrackForm('heroTrackForm', 'heroTrackingId', 'heroTrackResult');
+    setupTrackForm('mainTrackForm', 'mainTrackingId', 'mainTrackResult');
+    setupTrackForm('trackPageForm', 'trackPageTrackingId', 'trackPageResult');
+
+  // If we arrived on track.html with ?tracking=ID, prefill the input.
+  const params = new URLSearchParams(window.location.search || '');
+  const prefillTracking = params.get('tracking');
+  if (prefillTracking) {
+    const trackInput = document.getElementById('trackPageTrackingId');
+    if (trackInput) {
+      trackInput.value = prefillTracking;
+    }
+  }
+
+  function setupQuoteForm(formId, resultId, baseLabel) {
+    const form = document.getElementById(formId);
+    const result = document.getElementById(resultId);
+    if (!form) return;
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      let amount;
+
+      if (baseLabel === 'express') {
+        const originEl = document.getElementById('ex-origin');
+        const destEl = document.getElementById('ex-destination');
+        const speedEl = document.getElementById('ex-speed');
+        const nameEl = document.getElementById('ex-name');
+        const phoneEl = document.getElementById('ex-phone');
+        const emailEl = document.getElementById('ex-email');
+        const pickupEl = document.getElementById('ex-pickup');
+        const dropoffEl = document.getElementById('ex-dropoff');
+        const dateEl = document.getElementById('ex-date');
+
+        const origin = originEl ? originEl.value : '';
+        const dest = destEl ? destEl.value : '';
+        const speed = speedEl ? speedEl.value : '24h';
+
+        if (!origin || !dest) {
+          if (result) result.textContent = 'Please select pickup and delivery state.';
+          return;
+        }
+
+        // Zone 0: base around Ibadan / Ogun corridor (20k)
+        // Each higher zone adds +₦10,000 to the 24h price.
+        const stateZones = {
+          oyo: 0,
+          ogun: 0,
+          osun: 1,
+          lagos: 1,
+          ondo: 1,
+          ekiti: 1,
+          kwara: 1,
+          // rest of South & Middle Belt
+          edo: 2,
+          delta: 2,
+          kogi: 2,
+          benue: 2,
+          nasarawa: 2,
+          niger: 2,
+          abia: 2,
+          akwaibom: 2,
+          anambra: 2,
+          bayelsa: 2,
+          crossriver: 2,
+          ebonyi: 2,
+          enugu: 2,
+          imo: 2,
+          rivers: 2,
+          // far‑north band
+          adamawa: 3,
+          bauchi: 3,
+          borno: 3,
+          gombe: 3,
+          jigawa: 3,
+          kaduna: 3,
+          kano: 3,
+          katsina: 3,
+          kebbi: 3,
+          plateau: 3,
+          sokoto: 3,
+          taraba: 3,
+          yobe: 3,
+          zamfara: 3,
+          fct: 2
         };
 
-        // Move to final submission step
-        const uploadStep = document.getElementById('uploadStep');
-        const submitStep = document.getElementById('submitStep');
-        if (uploadStep) uploadStep.style.display = 'none';
-        if (submitStep) submitStep.style.display = 'block';
+        const zone = code => (stateZones[code] != null ? stateZones[code] : 2);
+        const maxZone = Math.max(zone(origin), zone(dest));
+
+        // Base 24h price starts at 20k around Ibadan/Ogun and
+        // increases by 10k for each zone step away.
+        let base24 = 20000 + maxZone * 10000;
+
+        // Special example: route Oyo (Ibadan) -> Osun becomes 30k:
+        if (
+          (origin === 'oyo' && dest === 'osun') ||
+          (origin === 'osun' && dest === 'oyo')
+        ) {
+          base24 = 30000;
+        }
+
+        let factor = 1;
+        if (speed === '2d') {
+          factor = 0.8; // 20% cheaper than 24h
+        } else if (speed === '3d') {
+          factor = 0.65; // 35% cheaper than 24h
+        }
+
+        amount = Math.round((base24 * factor) / 1000) * 1000;
+
+        const receiverEl = document.getElementById('ex-receiver');
+          const receiverEmailEl = document.getElementById('ex-receiver-email');
+          const booking = {
+            service: 'express',
+            name: nameEl ? nameEl.value.trim() : '',
+            phone: phoneEl ? phoneEl.value.trim() : '',
+            receiverPhone: receiverEl ? receiverEl.value.trim() : '',
+            receiverEmail: receiverEmailEl ? receiverEmailEl.value.trim() : '',
+          pickupAddress: pickupEl ? pickupEl.value.trim() : '',
+          dropoffAddress: dropoffEl ? dropoffEl.value.trim() : '',
+          date: dateEl ? dateEl.value : '',
+          origin,
+          originLabel: originEl && originEl.selectedIndex >= 0 ? originEl.options[originEl.selectedIndex].text : origin,
+          dest,
+          destLabel: destEl && destEl.selectedIndex >= 0 ? destEl.options[destEl.selectedIndex].text : dest,
+          speed,
+          speedLabel: speedEl && speedEl.selectedIndex >= 0 ? speedEl.options[speedEl.selectedIndex].text : speed,
+          price: amount
+        };
+
+        localStorage.setItem('serviceBooking', JSON.stringify(booking));
+        window.location.href = 'upload.html';
+        return;
+      } else {
+        const now = new Date();
+        const seed = now.getHours() * 60 + now.getMinutes();
+        if (baseLabel === 'freight') {
+          amount = 250000 + (seed % 750000); // ~250k–1M
+
+          const nameEl = document.getElementById('fr-name');
+          const phoneEl = document.getElementById('fr-phone');
+          const emailEl = document.getElementById('fr-email');
+          const originEl = document.getElementById('fr-origin');
+          const destEl = document.getElementById('fr-destination');
+          const modeEl = document.getElementById('fr-mode');
+
+          const receiverEl = document.getElementById('fr-receiver');
+          const receiverEmailEl = document.getElementById('fr-receiver-email');
+          const booking = {
+            service: 'freight',
+            name: nameEl ? nameEl.value.trim() : '',
+            phone: phoneEl ? phoneEl.value.trim() : '',
+            receiverPhone: receiverEl ? receiverEl.value.trim() : '',
+            receiverEmail: receiverEmailEl ? receiverEmailEl.value.trim() : '',
+            email: emailEl ? emailEl.value.trim() : '',
+            originLabel: originEl ? originEl.value.trim() : '',
+            destLabel: destEl ? destEl.value.trim() : '',
+            speedLabel: modeEl ? (modeEl.value.trim() || 'Freight shipment') : 'Freight shipment',
+            price: amount
+          };
+
+          localStorage.setItem('serviceBooking', JSON.stringify(booking));
+          window.location.href = 'upload.html';
+          return;
+        } else {
+          amount = 30000 + (seed % 170000); // ~30k–200k / month
+
+          const nameEl = document.getElementById('wh-name');
+          const phoneEl = document.getElementById('wh-phone');
+          const emailEl = document.getElementById('wh-email');
+          const companyEl = document.getElementById('wh-company');
+
+          const booking = {
+            service: 'warehousing',
+            name: nameEl ? nameEl.value.trim() : '',
+            phone: phoneEl ? phoneEl.value.trim() : '',
+            receiverPhone: '',
+            email: emailEl ? emailEl.value.trim() : '',
+            originLabel: companyEl ? (companyEl.value.trim() || 'Warehousing & fulfillment') : 'Warehousing & fulfillment',
+            destLabel: '',
+            speedLabel: 'Monthly storage & fulfillment',
+            price: amount
+          };
+
+          localStorage.setItem('serviceBooking', JSON.stringify(booking));
+          window.location.href = 'upload.html';
+          return;
+        }
+      }
+
+      const currency = '₦';
+      const labelText =
+        baseLabel === 'warehousing'
+          ? `${currency}${amount.toLocaleString()} / month (estimated, final rate on confirmation).`
+          : `${currency}${amount.toLocaleString()} (estimated, final rate on confirmation).`;
+      if (result) result.textContent = `Estimated price: ${labelText}`;
     });
-}
+  }
 
-// File preview for quote form upload
-['quotePic1', 'quotePic2', 'quotePic3'].forEach((inputId, index) => {
-    const input = document.getElementById(inputId);
-    if (input) {
-        input.addEventListener('change', (e) => {
-            const previewId = `quotePic${index + 1}Preview`;
-            const previewDiv = document.getElementById(previewId);
-            
-            if (e.target.files && e.target.files[0]) {
-                const file = e.target.files[0];
-                const reader = new FileReader();
-                
-                reader.onload = (event) => {
-                    if (previewDiv) previewDiv.innerHTML = `<img src="${event.target.result}" alt="Preview">`;
-                };
-                
-                reader.readAsDataURL(file);
-            }
-        });
-    }
-});
+  setupQuoteForm('expressForm', 'expressQuote', 'express');
+  setupQuoteForm('freightForm', 'freightQuote', 'freight');
+  setupQuoteForm('warehousingForm', 'warehousingQuote', 'warehousing');
 
-// Final submit function
-async function submitQuoteWithPicture() {
-    // Require login: use currentUser from localStorage and prevent submission if missing
-    const savedUser = localStorage.getItem('currentUser');
-    const loggedUser = savedUser ? JSON.parse(savedUser) : null;
-    if (!loggedUser || !loggedUser.email) {
-        alert('Please login or register before submitting an order.');
-        if (typeof openLoginModal === 'function') openLoginModal();
-        return;
-    }
+  // Upload page behaviour
+  const uploadIntro = document.getElementById('uploadIntro');
+  const uploadRoute = document.getElementById('uploadRoute');
+  const uploadSpeed = document.getElementById('uploadSpeed');
+  const uploadPrice = document.getElementById('uploadPrice');
+  const uploadPhoto = document.getElementById('upload-photo');
+  const uploadPreview = document.getElementById('uploadPreview');
+  const uploadOrderBtn = document.getElementById('uploadOrderBtn');
+  const uploadOrderStatus = document.getElementById('uploadOrderStatus');
 
-    if (!window.multiStepFormData) {
-        alert('Form data not found. Please try again.');
-        return;
-    }
-
-    // Immediately show confirmation and redirect to home (user requested immediate navigation)
+  const storedBooking = localStorage.getItem('serviceBooking') || localStorage.getItem('expressBooking');
+  if (storedBooking && uploadRoute && uploadSpeed && uploadPrice) {
     try {
-        showToast('✅ Your order has been sent. Redirecting to home...', 2500);
-        setTimeout(() => { window.location.href = '/'; }, 2000);
+      const booking = JSON.parse(storedBooking);
+      const service = booking.service || 'express';
+
+      if (uploadIntro) {
+        if (service === 'freight') {
+          uploadIntro.textContent = 'Review your freight shipment details and attach a clear picture of the loaded pallets or container.';
+        } else if (service === 'warehousing') {
+          uploadIntro.textContent = 'Review your warehousing request and optionally upload a picture of typical inventory or packaging.';
+        } else {
+          uploadIntro.textContent = 'Review your express booking and attach a clear picture of the package.';
+        }
+      }
+
+      if (service === 'warehousing') {
+        uploadRoute.textContent = booking.originLabel || 'Warehousing & fulfillment';
+      } else {
+        uploadRoute.textContent = `${booking.originLabel || ''}${booking.destLabel ? ' → ' + booking.destLabel : ''}`;
+      }
+      uploadSpeed.textContent = booking.speedLabel || '';
+      uploadPrice.textContent = `₦${Number(booking.price || 0).toLocaleString()}${service === 'warehousing' ? ' / month' : ''} (estimated, final rate on confirmation).`;
+
+      // user email and phone
+      const userEmailEl = document.getElementById('uploadUserEmail');
+      const userPhoneEl = document.getElementById('uploadUserPhone');
+      if (userEmailEl) userEmailEl.textContent = booking.email || '';
+      if (userPhoneEl) userPhoneEl.textContent = booking.phone || '';
+      
+      // receiver strings
+      const receiverPhoneEl = document.getElementById('uploadReceiverPhone');
+      const receiverEmailElDisp = document.getElementById('uploadReceiverEmail');
+      if (receiverPhoneEl) {
+        receiverPhoneEl.textContent = booking.receiverPhone ? `${booking.receiverPhone}` : '';
+      }
+      if (receiverEmailElDisp) {
+        receiverEmailElDisp.textContent = booking.receiverEmail ? `${booking.receiverEmail}` : '';
+      }
     } catch (e) {
-        console.error('Immediate redirect toast failed:', e);
+      console.warn('Could not read expressBooking', e);
     }
+  }
 
-    const formData = window.multiStepFormData;
-    const { pic1, pic2, pic3 } = formData.pictures || {};
+  if (uploadPhoto && uploadPreview) {
+    uploadPhoto.addEventListener('change', () => {
+      const file = uploadPhoto.files && uploadPhoto.files[0];
+      const previewContainer = document.getElementById('uploadPreviewContainer');
+      const imageStatus = document.getElementById('uploadImageStatus');
+      
+      if (!file) {
+        if (previewContainer) previewContainer.classList.remove('visible');
+        if (uploadOrderStatus) uploadOrderStatus.textContent = '';
+        return;
+      }
 
-    try {
-        // Create FormData with file and order details
-        const submitFormData = new FormData();
-        
-        // Server expects a single file field named 'packagePicture'
-        if (pic1) {
-            submitFormData.append('packagePicture', pic1);
-        } else if (pic2) {
-            submitFormData.append('packagePicture', pic2);
-        } else if (pic3) {
-            submitFormData.append('packagePicture', pic3);
-        }
-        
-        // Use the logged-in user's email to ensure server user lookup succeeds
-        submitFormData.append('email', loggedUser.email || formData.senderEmail || '');
-        submitFormData.append('service', formData.serviceName);
-        submitFormData.append('priceRange', formData.servicePrice);
-        submitFormData.append('specialRequirements', formData.message);
-        submitFormData.append('senderAddress', `${formData.senderName}, ${formData.senderPhone}\n${formData.senderAddress}`);
-        submitFormData.append('receiverAddress', `${formData.receiverName}, ${formData.receiverPhone}\n${formData.receiverAddress}`);
-
-        // Submit to server
-        const response = await fetch(`${SERVER_URL}/create-order`, {
-            method: 'POST',
-            body: submitFormData
-        });
-
-        // Safely parse response: if server returns HTML (e.g. error page), avoid json() crash
-        let data;
-        const contentType = response.headers.get('content-type') || '';
-        if (contentType.includes('application/json')) {
-            data = await response.json();
-        } else {
-            const text = await response.text();
-            console.error('Non-JSON response from /create-order', response.status, text);
-            if (typeof showToast === 'function') showToast('Error sending order. Returning to home.');
-            window.location.href = 'index.html';
-            return;
-        }
-
-        if (!response.ok) {
-            console.error('Create order failed:', data);
-            if (typeof showToast === 'function') showToast(data.error || 'Failed to create order. Returning to home.');
-            window.location.href = 'index.html';
-            return;
-        }
-
-        // Show immediate, non-blocking confirmation that the order was received
-        if (typeof showToast === 'function') {
-            showToast('✅ Your order has been sent. Pending admin confirmation.');
-        } else {
-            // Fallback quick message
-            console.log('Order accepted by server:', data.order && data.order.trackingId);
-        }
-
-        // Send confirmation email to user
-        await sendOrderConfirmationEmail({
-            recipientEmail: loggedUser.email,
-            senderName: formData.senderName,
-            trackingId: data.order.trackingId,
-            service: formData.serviceName,
-            orderDetails: {
-                from: formData.senderAddress,
-                to: formData.receiverAddress,
-                special: formData.message
-            }
-        });
-
-        // Send admin notification email
-        await sendAdminNotificationEmail({
-            service: formData.serviceName,
-            trackingId: data.order.trackingId,
-            senderEmail: loggedUser.email,
-            senderName: formData.senderName
-        });
-
-        // Show success message briefly then return to home
-        if (typeof showToast === 'function') {
-            showToast('✅ Order submitted successfully. Returning home...');
-        } else {
-            console.log('Order accepted by server:', data.order && data.order.trackingId);
-        }
-        // Close quote form and reset
-        closeQuoteForm();
-        resetQuoteForm();
-        setTimeout(() => { window.location.href = 'index.html'; }, 1600);
-
-    } catch (error) {
-        console.error('Error creating order:', error);
-        if (typeof showToast === 'function') showToast('⚠️ Error creating order. Returning to home...');
-        setTimeout(() => { window.location.href = 'index.html'; }, 800);
-    }
-}
-
-function resetQuoteForm() {
-    const quoteForm = document.getElementById('quoteForm');
-    const quoteUploadForm = document.getElementById('quoteUploadForm');
-    
-    if (quoteForm) quoteForm.reset();
-    if (quoteUploadForm) quoteUploadForm.reset();
-    
-    // Reset previews
-    ['quotePic1', 'quotePic2', 'quotePic3'].forEach((_, index) => {
-        const previewId = `quotePic${index + 1}Preview`;
-        const previewDiv = document.getElementById(previewId);
-        if (previewDiv) previewDiv.innerHTML = '';
+      // Display the preview
+      const url = URL.createObjectURL(file);
+      uploadPreview.src = url;
+      
+      if (previewContainer) previewContainer.classList.add('visible');
+      if (imageStatus) imageStatus.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+      if (uploadOrderStatus) uploadOrderStatus.textContent = '';
     });
-    
-    // Reset steps
-    showQuoteStep();
-    
-    // Clear stored data
-    window.multiStepFormData = null;
-}
+  }
 
-// Lightweight toast helper for non-blocking messages
-function showToast(message, duration = 4000) {
-    try {
-        const existing = document.getElementById('app-toast');
-        if (existing) existing.remove();
-
-        const toast = document.createElement('div');
-        toast.id = 'app-toast';
-        toast.textContent = message;
-        Object.assign(toast.style, {
-            position: 'fixed',
-            bottom: '24px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: 'rgba(0,0,0,0.85)',
-            color: 'white',
-            padding: '12px 18px',
-            borderRadius: '8px',
-            boxShadow: '0 4px 14px rgba(0,0,0,0.3)',
-            zIndex: 9999,
-            fontSize: '14px'
-        });
-        document.body.appendChild(toast);
-        setTimeout(() => {
-            toast.style.transition = 'opacity 300ms ease';
-            toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 300);
-        }, duration);
-    } catch (e) {
-        console.error('Toast error', e);
-    }
-}
-
-// Email sending functions
-async function sendOrderConfirmationEmail(emailData) {
-    try {
-        const response = await fetch(`${SERVER_URL}/send-email`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                to: emailData.recipientEmail,
-                subject: `🎉 Order Confirmation - Tracking ID: ${emailData.trackingId}`,
-                type: 'order_confirmation',
-                data: {
-                    senderName: emailData.senderName,
-                    trackingId: emailData.trackingId,
-                    service: emailData.service,
-                    from: emailData.orderDetails.from,
-                    to: emailData.orderDetails.to,
-                    special: emailData.orderDetails.special
-                }
-            })
-        });
-
-        if (response.ok) {
-            console.log('✓ Confirmation email sent to:', emailData.recipientEmail);
-        } else {
-            console.warn('Failed to send confirmation email');
-        }
-    } catch (error) {
-        console.error('Error sending confirmation email:', error);
-    }
-}
-
-async function sendAdminNotificationEmail(emailData) {
-    try {
-        const response = await fetch(`${SERVER_URL}/send-email`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                to: 'support@logiflow.com',
-                subject: `📦 New Order Received - ${emailData.trackingId}`,
-                type: 'admin_notification',
-                data: {
-                    service: emailData.service,
-                    trackingId: emailData.trackingId,
-                    senderEmail: emailData.senderEmail,
-                    senderName: emailData.senderName
-                }
-            })
-        });
-
-        if (response.ok) {
-            console.log('✓ Admin notification email sent');
-        } else {
-            console.warn('Failed to send admin notification');
-        }
-    } catch (error) {
-        console.error('Error sending admin notification:', error);
-    }
-}
-
-function closeQuoteForm() {
-    const modal = document.getElementById('quoteModal');
-    if (modal) {
-        modal.classList.remove('active');
-        document.body.style.overflow = 'auto';
-    }
-}
-
-// Close modal when clicking outside the content
-window.addEventListener('click', (event) => {
-    const modal = document.getElementById('quoteModal');
-    if (modal && event.target === modal) {
-        closeQuoteForm();
-    }
-});
-
-// Close modal with Escape key
-document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {
-        const quoteModal = document.getElementById('quoteModal');
-        const uploadModal = document.getElementById('uploadModal');
-        
-        if (quoteModal && quoteModal.classList.contains('active')) {
-            closeQuoteForm();
-        } else if (uploadModal && uploadModal.classList.contains('active')) {
-            closeUploadForm();
-        }
-    }
-});
-
-// Upload Form Functions
-// Show a custom upload prompt modal (replaces alert) and open upload modal when user clicks Upload
-function showUploadPromptModal({ title = 'Upload', message = '' } = {}) {
-    let existing = document.getElementById('confirmUploadModal');
-    if (!existing) {
-        existing = document.createElement('div');
-        existing.id = 'confirmUploadModal';
-        existing.className = 'confirm-upload-modal';
-        existing.innerHTML = `
-            <div class="confirm-content">
-                <div class="confirm-title">${title}</div>
-                <div class="confirm-body">${message}</div>
-                <div class="confirm-actions">
-                    <button class="btn btn-secondary" id="confirmUploadCancel">Cancel</button>
-                    <button class="btn btn-primary" id="confirmUploadOpen">Upload Package Picture</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(existing);
-
-        // Click outside to close
-        existing.addEventListener('click', (e) => {
-            if (e.target === existing) {
-                existing.classList.remove('active');
-                document.body.style.overflow = 'auto';
-            }
-        });
-
-        // Wire buttons after appended
-        existing.querySelector('#confirmUploadCancel').addEventListener('click', () => {
-            existing.classList.remove('active');
-            document.body.style.overflow = 'auto';
-        });
-
-        existing.querySelector('#confirmUploadOpen').addEventListener('click', () => {
-            // Show camera/gallery selection for mobile
-            showCameraGalleryOptions();
-            existing.classList.remove('active');
-            document.body.style.overflow = 'auto';
-        });
-    } else {
-        // update content
-        const titleEl = existing.querySelector('.confirm-title');
-        const bodyEl = existing.querySelector('.confirm-body');
-        if (titleEl) titleEl.textContent = title;
-        if (bodyEl) bodyEl.textContent = message;
-    }
-
-    // Show it
-    existing.classList.add('active');
-    document.body.style.overflow = 'hidden';
-}
-
-function openUploadForm() {
-    const modal = document.getElementById('uploadModal');
-    if (modal) {
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
-}
-
-function closeUploadForm() {
-    const modal = document.getElementById('uploadModal');
-    if (modal) {
-        modal.classList.remove('active');
-        document.body.style.overflow = 'auto';
-    }
-    // Reset upload form
-    const uploadForm = document.getElementById('uploadForm');
-    if (uploadForm) {
-        uploadForm.reset();
-        document.getElementById('pic1Preview').innerHTML = '';
-        document.getElementById('pic2Preview').innerHTML = '';
-        document.getElementById('pic3Preview').innerHTML = '';
-    }
-}
-
-// Show camera/gallery selection modal on mobile
-function showCameraGalleryOptions() {
-    let optionsModal = document.getElementById('cameraGalleryModal');
-    if (!optionsModal) {
-        optionsModal = document.createElement('div');
-        optionsModal.id = 'cameraGalleryModal';
-        optionsModal.className = 'camera-gallery-modal';
-        optionsModal.innerHTML = `
-            <div class="camera-gallery-content">
-                <h3>📸 Choose Source</h3>
-                <p>Select how you want to upload your package picture:</p>
-                <div class="camera-gallery-buttons">
-                    <button class="btn btn-camera" id="cameraBtn" onclick="openCameraCapture()">
-                        <span>📷</span>
-                        <span>Camera</span>
-                    </button>
-                    <button class="btn btn-gallery" id="galleryBtn" onclick="openGallerySelect()">
-                        <span>🖼️</span>
-                        <span>Photo Gallery</span>
-                    </button>
-                </div>
-                <button class="btn btn-secondary" id="cancelCameraGallery" onclick="closeCameraGalleryModal()">Cancel</button>
-            </div>
-        `;
-        document.body.appendChild(optionsModal);
-        
-        // Close on background click
-        optionsModal.addEventListener('click', (e) => {
-            if (e.target === optionsModal) {
-                closeCameraGalleryModal();
-            }
-        });
-    }
-    optionsModal.classList.add('active');
-    document.body.style.overflow = 'hidden';
-}
-
-function closeCameraGalleryModal() {
-    const Modal = document.getElementById('cameraGalleryModal');
-    if (Modal) {
-        Modal.classList.remove('active');
-        document.body.style.overflow = 'auto';
-    }
-}
-
-// Open camera capture
-function openCameraCapture() {
-    closeCameraGalleryModal();
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = 'image/*';
-    fileInput.capture = 'environment'; // Back camera
-    fileInput.onchange = handlePictureCapture;
-    fileInput.click();
-}
-
-// Open gallery selection
-function openGallerySelect() {
-    closeCameraGalleryModal();
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = 'image/*';
-    fileInput.onchange = handlePictureCapture;
-    fileInput.click();
-}
-
-// Handle picture capture from camera or gallery
-function handlePictureCapture(event) {
-    const file = event.target.files[0];
-    if (!file) {
-        alert('No file selected. Please upload a package picture.');
+  if (uploadOrderBtn) {
+    uploadOrderBtn.addEventListener('click', async () => {
+      const file = uploadPhoto && uploadPhoto.files && uploadPhoto.files[0];
+      if (!file) {
+        if (uploadOrderStatus) uploadOrderStatus.textContent = 'Please upload a picture of the package first.';
         return;
-    }
-    
-    if (file.size > 10 * 1024 * 1024) {
-        alert('File size must be less than 10MB');
-        return;
-    }
-    
-    // Open upload form and show this picture
-    openUploadForm();
-}
+      }
 
-// Close upload modal when clicking outside
-document.addEventListener('click', (event) => {
-    const uploadModal = document.getElementById('uploadModal');
-    if (uploadModal && event.target === uploadModal) {
-        closeUploadForm();
-    }
-});
+      // Show loading state
+      if (uploadOrderStatus) uploadOrderStatus.textContent = 'Submitting your order...';
+      uploadOrderBtn.disabled = true;
 
-// File preview functionality
-['packagePic1', 'packagePic2', 'packagePic3'].forEach((inputId, index) => {
-    const input = document.getElementById(inputId);
-    if (input) {
-        input.addEventListener('change', (e) => {
-            const previewId = `pic${index + 1}Preview`;
-            const previewDiv = document.getElementById(previewId);
+      // Save a simple order record for the current user
+      try {
+        const bookingRaw = localStorage.getItem('serviceBooking');
+        const user = getCurrentUser();
+        if (bookingRaw && user && user.email) {
+          const booking = JSON.parse(bookingRaw);
+          const all = JSON.parse(localStorage.getItem('logisticsOrders')) || [];
+          const order = {
+            id: Date.now(),
+            email: user.email,
+            service: booking.service || 'express',
+            serviceLabel:
+              booking.service === 'freight'
+                ? 'Freight shipment'
+                : booking.service === 'warehousing'
+                ? 'Warehousing & fulfillment'
+                : 'Express delivery',
+            route:
+              booking.service === 'warehousing'
+                ? booking.originLabel || 'Warehousing & fulfillment'
+                : `${booking.originLabel || ''}${booking.destLabel ? ' → ' + booking.destLabel : ''}`,
+            speedLabel: booking.speedLabel || '',
+            price: booking.price || 0,
+            phone: booking.phone || '',
+            receiverPhone: booking.receiverPhone || '',
+            receiverEmail: booking.receiverEmail || '',
+            createdAt: new Date().toISOString(),
+            status: 'Pending'
+          };
+          all.unshift(order);
+          localStorage.setItem('logisticsOrders', JSON.stringify(all));
+
+          // send to backend + Supabase, including photo
+          const formData = new FormData();
+          formData.append('photo', file);
+          formData.append('order', JSON.stringify(order));
+
+          try {
+            const response = await fetch('/api/order', {
+              method: 'POST',
+              body: formData
+            });
             
-            if (e.target.files && e.target.files[0]) {
-                const file = e.target.files[0];
-                const reader = new FileReader();
-                
-                reader.onload = (event) => {
-                    previewDiv.innerHTML = `<img src="${event.target.result}" alt="Preview">`;
-                };
-                
-                reader.readAsDataURL(file);
-            }
-        });
-    }
-});
-
-// Handle upload form submission
-const uploadForm = document.getElementById('uploadForm');
-if (uploadForm) {
-    uploadForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-
-        const pic1 = document.getElementById('packagePic1').files[0];
-        const pic2 = document.getElementById('packagePic2').files[0];
-        const pic3 = document.getElementById('packagePic3').files[0];
-
-        if (!pic1 || !pic2 || !pic3) {
-            alert('Please upload all 3 pictures');
-            return;
-        }
-
-        // Log upload data
-        const fullName = window.quoteFormData?.fullName || 'Customer';
-        console.log('Package Pictures Uploaded:', {
-            pic1: pic1.name,
-            pic2: pic2.name,
-            pic3: pic3.name,
-            customerName: fullName,
-            timestamp: new Date().toLocaleString()
-        });
-
-        // Display success message
-        alert(`Thank you, ${fullName}!\n\nYour package pictures have been uploaded successfully.\n\nWe will process your shipment shortly and send you a confirmation email with your tracking number.`);
-
-        // Reset form and close modal
-        uploadForm.reset();
-        document.getElementById('pic1Preview').innerHTML = '';
-        document.getElementById('pic2Preview').innerHTML = '';
-        document.getElementById('pic3Preview').innerHTML = '';
-        closeUploadForm();
-    });
-}
-
-// Server Configuration
-// Use localhost for local development, Render for production
-const SERVER_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-    ? 'http://localhost:3000/api'
-    : 'https://logistic-web-6fxn.onrender.com/api';
-
-// User Menu and Auth Functions
-let currentUser = null;
-
-// Load user from localStorage on page load
-function initializeUserSession() {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-        try {
-            currentUser = JSON.parse(savedUser);
-            updateUserMenu();
-            console.log('✓ User session restored:', currentUser.name);
-        } catch (error) {
-            console.error('Error loading saved user:', error);
-            localStorage.removeItem('currentUser');
-        }
-    }
-}
-
-// Initialize user session when page loads
-function startInitialization() {
-    // Use requestAnimationFrame to ensure DOM is fully rendered
-    requestAnimationFrame(() => {
-        initializeUserSession();
-    });
-}
-
-document.addEventListener('DOMContentLoaded', startInitialization);
-
-// Also try initializing if DOM is already loaded (for inline scripts)
-if (document.readyState === 'complete') {
-    startInitialization();
-}
-
-function toggleUserMenu() {
-    const dropdown = document.getElementById('userDropdown');
-    const userBtn = document.querySelector('.user-icon-btn');
-    
-    if (dropdown.classList.contains('active')) {
-        dropdown.classList.remove('active');
-    } else {
-        // Position the dropdown below the user icon
-        const rect = userBtn.getBoundingClientRect();
-        dropdown.style.top = (rect.bottom + 10) + 'px';
-        dropdown.classList.add('active');
-    }
-}
-
-// Close dropdown when clicking outside
-document.addEventListener('click', (e) => {
-    const dropdown = document.getElementById('userDropdown');
-    const userBtn = document.querySelector('.user-icon-btn');
-    const userWrapper = document.querySelector('.user-menu-wrapper');
-    
-    if (dropdown && !userWrapper.contains(e.target)) {
-        dropdown.classList.remove('active');
-    }
-});
-
-function openLoginModal() {
-    document.getElementById('loginModal').classList.add('active');
-    document.getElementById('userDropdown').classList.remove('active');
-    document.body.style.overflow = 'hidden';
-}
-
-function closeLoginModal() {
-    document.getElementById('loginModal').classList.remove('active');
-    document.body.style.overflow = 'auto';
-}
-
-function openRegisterModal() {
-    document.getElementById('registerModal').classList.add('active');
-    document.getElementById('userDropdown').classList.remove('active');
-    document.body.style.overflow = 'hidden';
-}
-
-function closeRegisterModal() {
-    document.getElementById('registerModal').classList.remove('active');
-    document.body.style.overflow = 'auto';
-}
-
-function switchToRegister(e) {
-    e.preventDefault();
-    closeLoginModal();
-    openRegisterModal();
-}
-
-function switchToLogin(e) {
-    e.preventDefault();
-    closeRegisterModal();
-    openLoginModal();
-}
-
-function closeProfileModal() {
-    document.getElementById('profileModal').classList.remove('active');
-    document.body.style.overflow = 'auto';
-}
-
-function closeOrdersModal() {
-    document.getElementById('ordersModal').classList.remove('active');
-    document.body.style.overflow = 'auto';
-}
-
-function closeNotificationsModal() {
-    document.getElementById('notificationsModal').classList.remove('active');
-    document.body.style.overflow = 'auto';
-}
-
-// Handle login form submission
-const loginForm = document.getElementById('loginForm');
-if (loginForm) {
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const email = document.getElementById('loginEmail').value;
-        const password = document.getElementById('loginPassword').value;
-        
-        // Validate email
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            alert('Please enter a valid email address');
-            return;
-        }
-        
-        if (password.length < 6) {
-            alert('Password must be at least 6 characters');
-            return;
-        }
-        
-        try {
-            const response = await fetch(`${SERVER_URL}/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ email, password })
-            });
-
             const data = await response.json();
-
-            if (response.ok) {
-                currentUser = {
-                    name: data.user.name,
-                    email: data.user.email
-                };
-                
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                
-                closeLoginModal();
-                updateUserMenu();
-                
-                // Clear form
-                loginForm.reset();
-                alert(`Welcome back, ${currentUser.name}!`);
-            } else {
-                alert(data.error || 'Login failed');
+            
+            if (uploadOrderStatus) {
+              if (data && data.ok) {
+                const trackingId = data.trackingId || 'N/A';
+                const imageUrl = data.imageUrl ? `<br><small style="color: #666;">Image stored: ${data.imageUrl.substring(0, 50)}...</small>` : '';
+                uploadOrderStatus.innerHTML = `
+                  <strong style="color: #10b981;">✓ Order submitted successfully!</strong><br>
+                  <small style="color: #666;">Tracking ID: <strong>${trackingId}</strong></small>${imageUrl}<br>
+                  <small style="color: #666;">Our team will review your booking and contact you shortly.</small>
+                `;
+                // Redirect to home after 2 seconds
+                setTimeout(() => {
+                  window.location.href = 'index.html#home';
+                }, 2000);
+              } else {
+                uploadOrderStatus.innerHTML = `
+                  <strong style="color: #ef4444;">Order submission failed</strong><br>
+                  <small style="color: #666;">${data && data.message ? data.message : 'Unknown error. Please try again.'}</small>
+                `;
+              }
             }
-        } catch (error) {
-            console.error('Login error:', error);
-            alert('Connection error. Make sure the API is reachable (localhost:3000 or https://logistic-web-6fxn.onrender.com');
-        }
-    });
-}
-
-// Handle register form submission
-const registerForm = document.getElementById('registerForm');
-if (registerForm) {
-    registerForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const name = document.getElementById('registerName').value.trim();
-        const email = document.getElementById('registerEmail').value.trim();
-        const password = document.getElementById('registerPassword').value.trim();
-        const confirmPassword = document.getElementById('registerConfirmPassword').value.trim();
-        
-        // Validate all fields are filled
-        if (!name || !email || !password || !confirmPassword) {
-            alert('Please fill in all fields');
-            return;
-        }
-        
-        // Validate email
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            alert('Please enter a valid email address');
-            return;
-        }
-        
-        if (password.length < 6) {
-            alert('Password must be at least 6 characters');
-            return;
-        }
-        
-        if (password !== confirmPassword) {
-            alert('Passwords do not match');
-            return;
-        }
-        
-        try {
-            const response = await fetch(`${SERVER_URL}/register`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    registerName: name,
-                    registerEmail: email,
-                    registerPassword: password
-                })
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                currentUser = {
-                    name: data.user.name,
-                    email: data.user.email
-                };
-                
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                
-                closeRegisterModal();
-                updateUserMenu();
-                
-                // Clear form
-                registerForm.reset();
-                alert(`Welcome to LogiFlow, ${name}!\n\nA welcome email with your tracking number has been sent to ${email}`);
-            } else {
-                alert(data.error || 'Registration failed');
+          } catch (fetchErr) {
+            console.error('Fetch error:', fetchErr);
+            if (uploadOrderStatus) {
+              uploadOrderStatus.innerHTML = `
+                <strong style="color: #ef4444;">Network error</strong><br>
+                <small style="color: #666;">There was an issue sending your order to the server. Please check your connection and try again.</small>
+              `;
             }
-        } catch (error) {
-            console.error('Register error:', error);
-            alert('Connection error. Make sure the API is reachable (localhost:3000 or https://logistic-web-6fxn.onrender.com');
+          } finally {
+            uploadOrderBtn.disabled = false;
+          }
         }
+      } catch (e) {
+        console.warn('Could not save logistics order', e);
+        if (uploadOrderStatus) {
+          uploadOrderStatus.innerHTML = `
+            <strong style="color: #ef4444;">Error</strong><br>
+            <small style="color: #666;">There was a problem saving your order. Please try again.</small>
+          `;
+        }
+        uploadOrderBtn.disabled = false;
+      }
     });
-}
+  }
 
-function updateUserMenu() {
-    const authSection = document.getElementById('authSection');
-    const userSection = document.getElementById('userSection');
-    
-    // Check if elements exist before trying to modify them
-    if (!authSection || !userSection) {
-        return;
-    }
-    
-    if (currentUser) {
-        authSection.classList.add('hidden');
-        userSection.classList.remove('hidden');
+  // Auth page: login & register
+  const tabLogin = document.getElementById('tab-login');
+  const tabRegister = document.getElementById('tab-register');
+  const authTabs = document.querySelector('.auth-tabs');
+  const loginForm = document.getElementById('loginForm');
+  const registerForm = document.getElementById('registerForm');
+  const loginStatus = document.getElementById('loginStatus');
+  const registerStatus = document.getElementById('registerStatus');
+  const profileCard = document.getElementById('profileCard');
+  const profileName = document.getElementById('profileName');
+  const profileEmail = document.getElementById('profileEmail');
+  const profileNameDetail = document.getElementById('profileNameDetail');
+  const profileEmailDetail = document.getElementById('profileEmailDetail');
+  const profilePhoneDetail = document.getElementById('profilePhoneDetail');
+  const profileAvatarText = document.getElementById('profileAvatarText');
+
+  function showTab(tab) {
+    if (!loginForm || !registerForm || !tabLogin || !tabRegister) return;
+    if (tab === 'login') {
+      loginForm.style.display = 'block';
+      registerForm.style.display = 'none';
+      tabLogin.classList.add('active');
+      tabRegister.classList.remove('active');
     } else {
-        authSection.classList.remove('hidden');
-        userSection.classList.add('hidden');
+      loginForm.style.display = 'none';
+      registerForm.style.display = 'block';
+      tabLogin.classList.remove('active');
+      tabRegister.classList.add('active');
     }
-}
+  }
 
-function showProfile(e) {
-    e.preventDefault();
-    if (!currentUser) {
-        alert('Please login first');
-        return;
-    }
-    
-    document.getElementById('profileName').textContent = currentUser.name || '-';
-    document.getElementById('profileEmail').textContent = currentUser.email || '-';
-    document.getElementById('profilePhone').textContent = currentUser.phone || '-';
-    
-    document.getElementById('profileModal').classList.add('active');
-    document.getElementById('userDropdown').classList.remove('active');
-    document.body.style.overflow = 'hidden';
-}
+  if (tabLogin && tabRegister) {
+    tabLogin.addEventListener('click', () => showTab('login'));
+    tabRegister.addEventListener('click', () => showTab('register'));
+  }
 
-function showOrders(e) {
-    e.preventDefault();
-    if (!currentUser) {
-        alert('Please login first');
-        return;
-    }
-    
-    // Fetch orders from server
-    fetchOrders();
-    
-    document.getElementById('ordersModal').classList.add('active');
-    document.getElementById('userDropdown').classList.remove('active');
-    document.body.style.overflow = 'hidden';
-}
+  // If user is already logged in, show only profile details on auth page
+  const existingUser = getCurrentUser();
+  if (existingUser && profileCard) {
+    const initial = (existingUser.name || existingUser.email || 'U').charAt(0).toUpperCase();
+    if (profileAvatarText) profileAvatarText.textContent = initial;
+    if (profileName) profileName.textContent = existingUser.name || 'SwiftLogix user';
+    if (profileEmail) profileEmail.textContent = existingUser.email || '';
+    if (profileNameDetail) profileNameDetail.textContent = existingUser.name || '—';
+    if (profileEmailDetail) profileEmailDetail.textContent = existingUser.email || '—';
+    if (profilePhoneDetail) profilePhoneDetail.textContent = existingUser.phone || '—';
 
-async function fetchOrders() {
+    profileCard.style.display = 'block';
+
+    // Hide login/register tabs and forms so they don't see them again
+    if (authTabs) authTabs.style.display = 'none';
+    if (loginForm) loginForm.style.display = 'none';
+    if (registerForm) registerForm.style.display = 'none';
+  }
+
+  function getUsers() {
     try {
-        const response = await fetch(`${SERVER_URL}/orders/${currentUser.email}`);
-        const data = await response.json();
-
-        const ordersContainer = document.getElementById('ordersList');
-        if (!ordersContainer) return;
-
-        ordersContainer.innerHTML = '';
-
-        if (data.orders && data.orders.length > 0) {
-            data.orders.forEach(order => {
-                const orderDiv = document.createElement('div');
-                orderDiv.style.cssText = 'background: #f9f9f9; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #1e88e5;';
-                orderDiv.innerHTML = `
-                    <p style="margin: 5px 0; font-weight: bold; color: #1e88e5;">Order ID: ${order.id}</p>
-                    <p style="margin: 5px 0;"><strong>Service:</strong> ${order.service}</p>
-                    <p style="margin: 5px 0;"><strong>Tracking:</strong> ${order.trackingId}</p>
-                    <p style="margin: 5px 0;"><strong>Status:</strong> <span style="color: #ff6f00; font-weight: bold;">${order.status}</span></p>
-                    <p style="margin: 5px 0; font-size: 0.9em; color: #666;">${new Date(order.createdAt).toLocaleDateString()}</p>
-                `;
-                ordersContainer.appendChild(orderDiv);
-            });
-        } else {
-            ordersContainer.innerHTML = '<p style="color: #666; text-align: center;">No orders yet. Create one to get started!</p>';
-        }
-    } catch (error) {
-        console.error('Fetch orders error:', error);
-        alert('Could not fetch orders from server');
+      return JSON.parse(localStorage.getItem('logisticsUsers')) || [];
+    } catch {
+      return [];
     }
-}
+  }
 
-function showNotifications(e) {
-    e.preventDefault();
-    if (!currentUser) {
-        alert('Please login first');
+  function saveUsers(users) {
+    localStorage.setItem('logisticsUsers', JSON.stringify(users));
+  }
+
+  if (registerForm) {
+    registerForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const name = document.getElementById('reg-name').value.trim();
+      const phone = document.getElementById('reg-phone').value.trim();
+      const email = document.getElementById('reg-email').value.trim().toLowerCase();
+      const pw = document.getElementById('reg-password').value;
+      const pw2 = document.getElementById('reg-password2').value;
+
+      if (!name || !phone || !email || !pw || !pw2) {
+        if (registerStatus) registerStatus.textContent = 'Please fill all fields.';
         return;
-    }
-    
-    // Fetch notifications from server
-    fetchNotifications();
-    
-    document.getElementById('notificationsModal').classList.add('active');
-    document.getElementById('userDropdown').classList.remove('active');
-    document.body.style.overflow = 'hidden';
-}
-
-// Add 'filled' class to form controls that contain user input so CSS can style them
-document.addEventListener('DOMContentLoaded', () => {
-    const selector = 'form input, form textarea, form select';
-    const formControls = Array.from(document.querySelectorAll(selector));
-
-    function shouldIgnore(el) {
-        if (!el) return true;
-        const t = el.type ? el.type.toLowerCase() : '';
-        return ['file', 'checkbox', 'radio', 'submit', 'button', 'hidden'].includes(t) || el.disabled || el.readOnly;
-    }
-
-    function updateFilled(el) {
-        if (shouldIgnore(el)) return;
-        const val = (el.value || '').toString();
-        if (val.trim() !== '') {
-            el.classList.add('filled');
-        } else {
-            el.classList.remove('filled');
-        }
-    }
-
-    formControls.forEach(el => {
-        if (shouldIgnore(el)) return;
-        // initialize state
-        updateFilled(el);
-        // listen for changes
-        el.addEventListener('input', () => updateFilled(el));
-        el.addEventListener('change', () => updateFilled(el));
-        el.addEventListener('blur', () => updateFilled(el));
+      }
+      if (pw !== pw2) {
+        if (registerStatus) registerStatus.textContent = 'Passwords do not match.';
+        return;
+      }
+      const users = getUsers();
+      const user = { id: Date.now(), name, phone, email, password: pw };
+      users.push(user);
+      saveUsers(users);
+      localStorage.setItem('logisticsCurrentUser', JSON.stringify(user));
+      // send to server
+      fetch('http://localhost:4000/api/auth-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'register', user: { name, phone, email } })
+      }).catch(() => {});
+      if (registerStatus) registerStatus.textContent = 'Account created. Redirecting...';
+      setTimeout(() => {
+        window.location.href = 'index.html';
+      }, 800);
     });
-});
+  }
 
-async function fetchNotifications() {
-    try {
-        const response = await fetch(`${SERVER_URL}/notifications/${currentUser.email}`);
-        const data = await response.json();
-
-        const notificationsContainer = document.getElementById('notificationsList');
-        if (!notificationsContainer) return;
-
-        notificationsContainer.innerHTML = '';
-
-        if (data.notifications && data.notifications.length > 0) {
-            data.notifications.forEach(notif => {
-                const notifDiv = document.createElement('div');
-                notifDiv.style.cssText = 'background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #ff6f00; box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
-                notifDiv.innerHTML = `
-                    <p style="margin: 5px 0; font-weight: bold; color: #333;">${notif.title}</p>
-                    <p style="margin: 5px 0; color: #666;">${notif.message}</p>
-                    <p style="margin: 5px 0; font-size: 0.85em; color: #999;">${new Date(notif.timestamp).toLocaleString()}</p>
-                `;
-                notificationsContainer.appendChild(notifDiv);
-            });
-        } else {
-            notificationsContainer.innerHTML = '<p style="color: #666; text-align: center;">No notifications yet. You will receive updates about your orders here!</p>';
-        }
-    } catch (error) {
-        console.error('Fetch notifications error:', error);
-        alert('Could not fetch notifications from server');
-    }
-}
-
-function editProfile() {
-    alert('Edit profile feature coming soon!');
-}
-
-function logout(e) {
-    e.preventDefault();
-    const name = currentUser.name;
-    currentUser = null;
-    localStorage.removeItem('currentUser');
-    updateUserMenu();
-    document.getElementById('userDropdown').classList.remove('active');
-    alert(`Goodbye, ${name}! You have been logged out.`);
-}
-
-// Close modals with Escape key
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-        document.getElementById('loginModal').classList.remove('active');
-        document.getElementById('registerModal').classList.remove('active');
-        document.getElementById('profileModal').classList.remove('active');
-        document.getElementById('ordersModal').classList.remove('active');
-        document.getElementById('notificationsModal').classList.remove('active');
-        document.body.style.overflow = 'auto';
-    }
-});
-
-// Close modals when clicking outside
-document.querySelectorAll('.modal').forEach(modal => {
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.classList.remove('active');
-            document.body.style.overflow = 'auto';
-        }
+  if (loginForm) {
+    loginForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value.trim().toLowerCase();
+      const pw = document.getElementById('login-password').value;
+      const users = getUsers();
+      const found = users.find(u => u.email === email && u.password === pw);
+      if (!found) {
+        if (loginStatus) loginStatus.textContent = 'Incorrect email or password.';
+        return;
+      }
+      localStorage.setItem('logisticsCurrentUser', JSON.stringify(found));
+      // send to server
+      fetch('http://localhost:4000/api/auth-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'login', user: { name: found.name, phone: found.phone, email: found.email } })
+      }).catch(() => {});
+      if (loginStatus) loginStatus.textContent = 'Login successful. Redirecting...';
+      setTimeout(() => {
+        window.location.href = 'index.html';
+      }, 800);
     });
-});
+  }
 
-console.log('LogiFlow Website Initialized Successfully!');
+  // Handle express delivery form submission
+  const expressForm = document.getElementById('expressForm');
+  if (expressForm) {
+    expressForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const nameEl = document.getElementById('ex-name');
+      const emailEl = document.getElementById('ex-email');
+      const phoneEl = document.getElementById('ex-phone');
+      const receiverEl = document.getElementById('ex-receiver');
+      const receiverEmailEl = document.getElementById('ex-receiver-email');
+      const companyEl = document.getElementById('ex-company');
+      const pickupEl = document.getElementById('ex-pickup');
+      const dropoffEl = document.getElementById('ex-dropoff');
+      const originEl = document.getElementById('ex-origin');
+      const destinationEl = document.getElementById('ex-destination');
+      const weightEl = document.getElementById('ex-weight');
+      const dimensionsEl = document.getElementById('ex-dimensions');
+      const descriptionEl = document.getElementById('ex-description');
+
+      const name = nameEl ? nameEl.value.trim() : '';
+      const email = emailEl ? emailEl.value.trim() : '';
+      const phone = phoneEl ? phoneEl.value.trim() : '';
+      const receiverPhone = receiverEl ? receiverEl.value.trim() : '';
+      const receiverEmail = receiverEmailEl ? receiverEmailEl.value.trim() : '';
+      const company = companyEl ? companyEl.value.trim() : '';
+      const pickup = pickupEl ? pickupEl.value.trim() : '';
+      const dropoff = dropoffEl ? dropoffEl.value.trim() : '';
+      const origin = originEl ? originEl.value : '';
+      const destination = destinationEl ? destinationEl.value : '';
+      const weight = weightEl ? weightEl.value.trim() : '';
+      const dimensions = dimensionsEl ? dimensionsEl.value.trim() : '';
+      const description = descriptionEl ? descriptionEl.value.trim() : '';
+
+      if (!name || !email || !phone || !pickup || !dropoff || !origin || !destination) {
+        alert('Please fill all required fields.');
+        return;
+      }
+
+      const shipmentData = {
+        sender_name: name,
+        sender_email: email,
+        sender_phone: phone,
+        sender_address: pickup,
+        sender_state: origin,
+        recipient_name: name, // Assuming same for now
+        recipient_email: receiverEmail || email,
+        recipient_phone: receiverPhone || phone,
+        recipient_address: dropoff,
+        recipient_state: destination,
+        package_type: 'express',
+        package_weight: weight,
+        package_dimensions: dimensions,
+        package_description: description,
+        origin_location: pickup,
+        destination_location: dropoff,
+        shipping_cost: 2500, // Example cost
+        currency: 'NGN',
+        user_email: email
+      };
+
+      try {
+        const res = await fetch('http://localhost:3000/api/shipments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(shipmentData)
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert('Express delivery request submitted! Tracking number: ' + (data.shipment?.tracking_number || 'N/A'));
+          expressForm.reset();
+        } else {
+          alert('Error: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        console.error('Error submitting express delivery:', err);
+        alert('Failed to submit request. Please try again.');
+      }
+    });
+  }
+
+  // Handle freight form submission
+  const freightForm = document.getElementById('freightForm');
+  if (freightForm) {
+    freightForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const nameEl = document.getElementById('fr-name');
+      const emailEl = document.getElementById('fr-email');
+      const phoneEl = document.getElementById('fr-phone');
+      const receiverEl = document.getElementById('fr-receiver');
+      const receiverEmailEl = document.getElementById('fr-receiver-email');
+      const companyEl = document.getElementById('fr-company');
+      const originEl = document.getElementById('fr-origin');
+      const destinationEl = document.getElementById('fr-destination');
+      const modeEl = document.getElementById('fr-mode');
+      const weightEl = document.getElementById('fr-weight');
+      const detailsEl = document.getElementById('fr-details');
+
+      const name = nameEl ? nameEl.value.trim() : '';
+      const email = emailEl ? emailEl.value.trim() : '';
+      const phone = phoneEl ? phoneEl.value.trim() : '';
+      const receiverPhone = receiverEl ? receiverEl.value.trim() : '';
+      const receiverEmail = receiverEmailEl ? receiverEmailEl.value.trim() : '';
+      const company = companyEl ? companyEl.value.trim() : '';
+      const origin = originEl ? originEl.value.trim() : '';
+      const destination = destinationEl ? destinationEl.value.trim() : '';
+      const mode = modeEl ? modeEl.value.trim() : '';
+      const weight = weightEl ? weightEl.value.trim() : '';
+      const details = detailsEl ? detailsEl.value.trim() : '';
+
+      if (!name || !email || !phone || !origin || !destination) {
+        alert('Please fill all required fields.');
+        return;
+      }
+
+      const shipmentData = {
+        sender_name: name,
+        sender_email: email,
+        sender_phone: phone,
+        sender_address: origin,
+        recipient_name: name,
+        recipient_email: receiverEmail || email,
+        recipient_phone: receiverPhone || phone,
+        recipient_address: destination,
+        package_type: 'freight',
+        package_weight: weight,
+        package_description: details,
+        origin_location: origin,
+        destination_location: destination,
+        shipping_cost: 15000, // Example cost
+        currency: 'NGN',
+        user_email: email
+      };
+
+      try {
+        const res = await fetch('http://localhost:3000/api/shipments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(shipmentData)
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert('Freight request submitted! Tracking number: ' + (data.shipment?.tracking_number || 'N/A'));
+          freightForm.reset();
+        } else {
+          alert('Error: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        console.error('Error submitting freight request:', err);
+        alert('Failed to submit request. Please try again.');
+      }
+    });
+  }
+});
