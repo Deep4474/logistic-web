@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
         profileLink.addEventListener('click', () => {
           console.log('Profile clicked');
           userMenu.classList.remove('open');
-          window.location.href = 'auth.html';
+          window.location.href = '/logistics/auth.html';
         });
       }
 
@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
           console.log('Logout clicked');
           // Clear user session and redirect
           localStorage.removeItem('logisticsCurrentUser');
-          window.location.href = 'auth.html';
+          window.location.href = '/logistics/auth.html';
         });
       }
     }
@@ -300,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
           btn.addEventListener('click', async () => {
             const action = btn.getAttribute('data-nav');
             if (action === 'profile') {
-              window.location.href = 'auth.html';
+              window.location.href = '/logistics/auth.html';
             } else if (action === 'orders') {
               await openNavPanel('orders', user);
             } else if (action === 'notifications') {
@@ -468,7 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
               submitBtn.textContent = 'Track your package';
               submitBtn.type = 'button';
               submitBtn.onclick = () => {
-                window.location.href = `track.html?tracking=${encodeURIComponent(value)}`;
+                window.location.href = `/logistics/track.html?tracking=${encodeURIComponent(value)}`;
               };
             }
           }
@@ -612,7 +612,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         localStorage.setItem('serviceBooking', JSON.stringify(booking));
-        window.location.href = 'upload.html';
+        window.location.href = '/logistics/upload.html';
         return;
       } else {
         const now = new Date();
@@ -643,7 +643,7 @@ document.addEventListener('DOMContentLoaded', () => {
           };
 
           localStorage.setItem('serviceBooking', JSON.stringify(booking));
-          window.location.href = 'upload.html';
+          window.location.href = '/logistics/upload.html';
           return;
         } else {
           amount = 30000 + (seed % 170000); // ~30k–200k / month
@@ -666,7 +666,7 @@ document.addEventListener('DOMContentLoaded', () => {
           };
 
           localStorage.setItem('serviceBooking', JSON.stringify(booking));
-          window.location.href = 'upload.html';
+          window.location.href = '/logistics/upload.html';
           return;
         }
       }
@@ -828,7 +828,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 // Redirect to home after 2 seconds
                 setTimeout(() => {
-                  window.location.href = 'index.html#home';
+                  window.location.href = '/logistics/index.html#home';
                 }, 2000);
               } else {
                 uploadOrderStatus.innerHTML = `
@@ -959,7 +959,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }).catch(() => {});
       if (registerStatus) registerStatus.textContent = 'Account created. Redirecting...';
       setTimeout(() => {
-        window.location.href = 'index.html';
+        window.location.href = '/logistics/index.html';
       }, 800);
     });
   }
@@ -984,7 +984,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }).catch(() => {});
       if (loginStatus) loginStatus.textContent = 'Login successful. Redirecting...';
       setTimeout(() => {
-        window.location.href = 'index.html';
+        window.location.href = '/logistics/index.html';
       }, 800);
     });
   }
