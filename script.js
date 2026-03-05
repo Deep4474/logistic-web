@@ -248,82 +248,93 @@ document.addEventListener('DOMContentLoaded', () => {
 
       let userWrapper = document.querySelector('.nav-user');
 
+      // Always create/update user icon (visible for logged in and logged out users)
+      if (!userWrapper) {
+        userWrapper = document.createElement('div');
+        userWrapper.className = 'nav-user';
+        navLinksEl.appendChild(userWrapper);
+      }
+
       if (!user) {
-        // Not logged in: show Login/Register link, remove user menu if present
+        // Not logged in: show Login/Register link and generic login icon
         if (authLink) authLink.style.display = '';
-        if (userWrapper && userWrapper.parentElement) {
-          userWrapper.parentElement.removeChild(userWrapper);
+        
+        userWrapper.innerHTML = `
+          <button class="nav-user-button" type="button" aria-label="Login">
+            <span class="nav-user-avatar">👤</span>
+          </button>
+        `;
+        
+        const loginBtn = userWrapper.querySelector('.nav-user-button');
+        if (loginBtn) {
+          loginBtn.addEventListener('click', () => {
+            window.location.href = 'auth.html';
+          });
         }
         return;
       }
 
-      // Logged in: hide Login/Register link
+      // Logged in: hide Login/Register link and show user menu
       if (authLink) authLink.style.display = 'none';
 
-      // Create user menu if it doesn't exist yet
-      if (!userWrapper) {
-        userWrapper = document.createElement('div');
-        userWrapper.className = 'nav-user';
-        userWrapper.innerHTML = `
-          <button class="nav-user-button" type="button" aria-haspopup="true" aria-expanded="false">
-            <span class="nav-user-avatar">${(user.name || user.email || 'U').charAt(0).toUpperCase()}</span>
-          </button>
-          <div class="nav-user-menu" role="menu">
-            <button class="nav-user-item" data-nav="profile" type="button">Profile</button>
-            <button class="nav-user-item" data-nav="orders" type="button">Order list</button>
-            <button class="nav-user-item" data-nav="notifications" type="button">Notifications</button>
-            <button class="nav-user-item nav-user-logout" data-nav="logout" type="button">Logout</button>
-          </div>
-        `;
-        navLinksEl.appendChild(userWrapper);
+      userWrapper.innerHTML = `
+        <button class="nav-user-button" type="button" aria-haspopup="true" aria-expanded="false">
+          <span class="nav-user-avatar">${(user.name || user.email || 'U').charAt(0).toUpperCase()}</span>
+        </button>
+        <div class="nav-user-menu" role="menu">
+          <button class="nav-user-item" data-nav="profile" type="button">Profile</button>
+          <button class="nav-user-item" data-nav="orders" type="button">Order list</button>
+          <button class="nav-user-item" data-nav="notifications" type="button">Notifications</button>
+          <button class="nav-user-item nav-user-logout" data-nav="logout" type="button">Logout</button>
+        </div>
+      `;
 
-        const toggleBtn = userWrapper.querySelector('.nav-user-button');
-        const menu = userWrapper.querySelector('.nav-user-menu');
+      const toggleBtn = userWrapper.querySelector('.nav-user-button');
+      const menu = userWrapper.querySelector('.nav-user-menu');
 
-        if (toggleBtn && menu) {
-          toggleBtn.addEventListener('click', () => {
-            const isOpen = menu.classList.toggle('open');
-            toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-            
-            // Close main nav menu when user menu opens
-            if (isOpen) {
-              const navLinksMenu = document.querySelector('.nav-links');
-              if (navLinksMenu && navLinksMenu.classList.contains('open')) {
-                navLinksMenu.classList.remove('open');
-              }
-            }
-          });
-        }
-
-        // Handle menu item clicks
-        userWrapper.querySelectorAll('.nav-user-item').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            const action = btn.getAttribute('data-nav');
-            if (action === 'profile') {
-              window.location.href = '/logistics/auth.html';
-            } else if (action === 'orders') {
-              await openNavPanel('orders', user);
-            } else if (action === 'notifications') {
-              await openNavPanel('notifications', user);
-            } else if (action === 'logout') {
-              localStorage.removeItem('logisticsCurrentUser');
-              window.location.reload();
-            }
-          });
-        });
-
-        // Close menu when clicking outside
-        document.addEventListener('click', (e) => {
-          if (!userWrapper.contains(e.target)) {
-            const menuEl = userWrapper.querySelector('.nav-user-menu');
-            const btnEl = userWrapper.querySelector('.nav-user-button');
-            if (menuEl && menuEl.classList.contains('open')) {
-              menuEl.classList.remove('open');
-              if (btnEl) btnEl.setAttribute('aria-expanded', 'false');
+      if (toggleBtn && menu) {
+        toggleBtn.addEventListener('click', () => {
+          const isOpen = menu.classList.toggle('open');
+          toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+          
+          // Close main nav menu when user menu opens
+          if (isOpen) {
+            const navLinksMenu = document.querySelector('.nav-links');
+            if (navLinksMenu && navLinksMenu.classList.contains('open')) {
+              navLinksMenu.classList.remove('open');
             }
           }
         });
       }
+
+      // Handle menu item clicks
+      userWrapper.querySelectorAll('.nav-user-item').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const action = btn.getAttribute('data-nav');
+          if (action === 'profile') {
+            window.location.href = 'auth.html';
+          } else if (action === 'orders') {
+            await openNavPanel('orders', user);
+          } else if (action === 'notifications') {
+            await openNavPanel('notifications', user);
+          } else if (action === 'logout') {
+            localStorage.removeItem('logisticsCurrentUser');
+            window.location.reload();
+          }
+        });
+      });
+
+      // Close menu when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!userWrapper.contains(e.target)) {
+          const menuEl = userWrapper.querySelector('.nav-user-menu');
+          const btnEl = userWrapper.querySelector('.nav-user-button');
+          if (menuEl && menuEl.classList.contains('open')) {
+            menuEl.classList.remove('open');
+            if (btnEl) btnEl.setAttribute('aria-expanded', 'false');
+          }
+        }
+      });
     }
 
     setupUserNav();
@@ -881,25 +892,37 @@ document.addEventListener('DOMContentLoaded', () => {
   function showTab(tab) {
     if (!loginForm || !registerForm || !tabLogin || !tabRegister) return;
     if (tab === 'login') {
+      loginForm.classList.remove('hidden');
       loginForm.style.display = 'block';
+      registerForm.classList.add('hidden');
       registerForm.style.display = 'none';
       tabLogin.classList.add('active');
       tabRegister.classList.remove('active');
     } else {
+      loginForm.classList.add('hidden');
       loginForm.style.display = 'none';
+      registerForm.classList.remove('hidden');
       registerForm.style.display = 'block';
       tabLogin.classList.remove('active');
       tabRegister.classList.add('active');
     }
   }
 
+  // If user is already logged in, show only profile details on auth page
+  const existingUser = getCurrentUser();
+  const sectionHeader = document.querySelector('.auth-wrapper .section-header');
+
   if (tabLogin && tabRegister) {
     tabLogin.addEventListener('click', () => showTab('login'));
     tabRegister.addEventListener('click', () => showTab('register'));
-  }
 
-  // If user is already logged in, show only profile details on auth page
-  const existingUser = getCurrentUser();
+    // default to showing register form if no user is logged in
+    if (!existingUser) {
+      if (profileCard) profileCard.classList.add('hidden');
+      if (sectionHeader) sectionHeader.style.display = 'block';
+      showTab('register');
+    }
+  }
   if (existingUser && profileCard) {
     const initial = (existingUser.name || existingUser.email || 'U').charAt(0).toUpperCase();
     if (profileAvatarText) profileAvatarText.textContent = initial;
@@ -909,12 +932,31 @@ document.addEventListener('DOMContentLoaded', () => {
     if (profileEmailDetail) profileEmailDetail.textContent = existingUser.email || '—';
     if (profilePhoneDetail) profilePhoneDetail.textContent = existingUser.phone || '—';
 
+    profileCard.classList.remove('hidden');
     profileCard.style.display = 'block';
 
-    // Hide login/register tabs and forms so they don't see them again
+    // Hide the descriptive header when showing profile
+    if (sectionHeader) sectionHeader.style.display = 'none';
+
+    // Hide login/register tabs and forms when showing profile
     if (authTabs) authTabs.style.display = 'none';
     if (loginForm) loginForm.style.display = 'none';
     if (registerForm) registerForm.style.display = 'none';
+
+    // Add switch account handler
+    const switchBtn = document.getElementById('switchAccountBtn');
+    if (switchBtn) {
+      switchBtn.addEventListener('click', () => {
+        localStorage.removeItem('logisticsCurrentUser');
+        profileCard.classList.add('hidden');
+        profileCard.style.display = 'none';
+        if (sectionHeader) sectionHeader.style.display = 'block';
+        if (authTabs) authTabs.style.display = 'block';
+        if (loginForm) loginForm.style.display = 'block';
+        if (registerForm) registerForm.style.display = 'none';
+        showTab('login');
+      });
+    }
   }
 
   function getUsers() {

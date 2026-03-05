@@ -118,6 +118,220 @@ body::before {
 }
 
 .nav-link {
+    text-decoration: none;
+}
+
+/* authentication page styles */
+.auth-wrapper {
+    max-width: 600px;
+    margin: 2rem auto 4rem;
+    padding: 0;
+    /* semi‑transparent card with blur for a modern glassy look */
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-radius: 0;
+    box-shadow: none;
+}
+.auth-wrapper .section-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding: 2rem 2rem 1rem 2rem;
+}
+
+.profile-card {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(25, 35, 60, 0.98) 100%);
+    border: 2px solid rgba(0, 102, 255, 0.25);
+    border-radius: 24px;
+    padding: 40px;
+    margin-bottom: 32px;
+    box-shadow: 0 20px 60px rgba(0, 102, 255, 0.2), 
+                inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    position: relative;
+    overflow: hidden;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.profile-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(0, 102, 255, 0.1) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.profile-card:hover {
+    border-color: rgba(0, 102, 255, 0.4);
+    box-shadow: 0 30px 80px rgba(0, 102, 255, 0.25), 
+                inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    transform: translateY(-2px);
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 32px;
+    padding-bottom: 28px;
+    border-bottom: 2px solid rgba(0, 102, 255, 0.15);
+    position: relative;
+    z-index: 1;
+}
+
+.profile-header > div {
+    flex: 1;
+}
+
+.profile-header h3 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 6px;
+    letter-spacing: -0.5px;
+}
+
+.profile-header p {
+    font-size: 0.95rem;
+    color: var(--text-light);
+    word-break: break-all;
+}
+
+.profile-avatar {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0066ff 0%, #1ea1ff 50%, #ffd700 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    font-weight: 700;
+    color: #ffffff;
+    box-shadow: 0 12px 30px rgba(0, 102, 255, 0.35),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    flex-shrink: 0;
+    flex-grow: 0;
+    position: relative;
+    z-index: 1;
+    min-width: 90px;
+}
+
+.profile-list {
+    margin-top: 0;
+    position: relative;
+    z-index: 1;
+}
+
+.profile-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(0, 102, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.profile-row:last-child {
+    border-bottom: none;
+}
+
+.profile-row:hover {
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.profile-row dt {
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 80px;
+    color: var(--primary-light);
+}
+
+.profile-row dd {
+    color: var(--text-color);
+    font-size: 0.95rem;
+    text-align: right;
+    flex: 1;
+    font-weight: 500;
+}
+
+.profile-hint {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    margin-top: 28px;
+    line-height: 1.6;
+    padding: 16px;
+    background: rgba(0, 102, 255, 0.08);
+    border-left: 3px solid var(--primary-light);
+    border-radius: 8px;
+    position: relative;
+    z-index: 1;
+}
+
+.auth-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 28px;
+    background: rgba(30, 41, 59, 0.5);
+    padding: 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.auth-tab {
+    flex: 1;
+    padding: 12px 20px;
+    background: transparent;
+    border: 2px solid transparent;
+    color: var(--text-light);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 10px;
+}
+
+.auth-tab:hover {
+    color: var(--primary-color);
+    border-color: rgba(37, 99, 235, 0.3);
+}
+
+.auth-tab.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.auth-layout {position:relative;}
+
+.auth-layout form {
+    display:none;
+}
+.auth-layout form.active {display:block;}
+
+.auth-layout .field-row {display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-bottom: 8px;}
+.auth-layout .field {margin-bottom: 20px;}
+
+.auth-layout .btn-full {width:100%; margin-top: 10px;}
+
+/* end auth page styles */
+
+.nav-link {
     color: var(--text-light);
     text-decoration: none;
     transition: color 0.3s, text-shadow 0.3s;
@@ -485,6 +699,48 @@ a:hover {
 }
 
 .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, rgba(0, 102, 255, 0.15) 0%, rgba(30, 161, 255, 0.1) 100%);
+    color: var(--primary-light);
+    border: 2px solid var(--primary-light);
+    box-shadow: 0 8px 20px rgba(30, 161, 255, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-secondary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(135deg, rgba(0, 102, 255, 0.25) 0%, rgba(30, 161, 255, 0.18) 100%);
+    border-color: #1ea1ff;
+    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(30, 161, 255, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.btn-secondary:hover::before {
+    left: 100%;
+}
+
+.btn-secondary:disabled {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
@@ -2662,42 +2918,50 @@ main {
 .contact-form {
     background: rgba(15, 23, 42, 0.98);
     border-radius: 20px;
-    padding: 22px 22px 24px;
+    padding: 32px;
     border: 1px solid rgba(148, 163, 184, 0.4);
     box-shadow: 0 24px 55px rgba(15, 23, 42, 0.9);
+    max-width: 600px;
+    margin: 0 auto;
 }
 
 .field-row {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
+    gap: 20px;
+    margin-bottom: 8px;
 }
 
 .field {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    margin-bottom: 14px;
+    gap: 8px;
+    margin-bottom: 20px;
 }
 
 .field label {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+    letter-spacing: 0.3px;
 }
 
 .field input,
 .field textarea {
-    padding: 11px 12px;
-    border-radius: 10px;
-    border: 1px solid rgba(148, 163, 184, 0.65);
-    background: rgba(15, 23, 42, 0.9);
+    width: 100%;                     /* make inputs span full column width */
+    box-sizing: border-box;          /* ensure padding doesn’t break grid */
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1.5px solid rgba(148, 163, 184, 0.5);
+    background: rgba(30, 41, 59, 0.8);
     color: var(--text-color);
-    font-size: 0.95rem;
+    font-size: 0.98rem;
+    transition: all 0.3s ease;
 }
 
 .field input::placeholder,
 .field textarea::placeholder {
-    color: rgba(148, 163, 184, 0.8);
+    color: rgba(148, 163, 184, 0.7);
 }
 
 .field textarea {
@@ -2705,11 +2969,18 @@ main {
     min-height: 120px;
 }
 
+.field input:hover,
+.field textarea:hover {
+    border-color: rgba(148, 163, 184, 0.7);
+    background: rgba(30, 41, 59, 0.95);
+}
+
 .field input:focus,
 .field textarea:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.6);
+    background: rgba(30, 41, 59, 0.95);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15), 0 0 0 1.5px rgba(37, 99, 235, 0.6);
 }
 
 .contact-side {
@@ -2794,6 +3065,10 @@ main {
 
     .field-row {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .contact-form {
+        padding: 24px;
     }
 }
 
