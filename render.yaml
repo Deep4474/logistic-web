@@ -1,20 +1,9 @@
 services:
   - type: web
-    name: logiflow-logistics
+    name: logistic-web
     runtime: node
-    plan: free
     buildCommand: npm install
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 3000
-      - key: EMAIL_USER
-        fromService:
-          name: logiflow-logistics
-          property: env.EMAIL_USER
-      - key: EMAIL_PASS
-        fromService:
-          name: logiflow-logistics
-          property: env.EMAIL_PASS
