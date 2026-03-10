@@ -7,7 +7,7 @@ const { createClient } = require('@supabase/supabase-js');
 const nodemailer = require('nodemailer');
 const multer = require('multer');
 
-// Load environment variables from root .env file
+// Load environment variables from .env file
 dotenv.config();
 
 const app = express();
@@ -17,17 +17,17 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from the "logistics" folder under /logistics
+// Serve static files from the current folder under /logistics
 // This matches the <base href="/logistics/"> in index.html
-app.use('/logistics', express.static(path.join(__dirname, 'logistics')));
+app.use('/logistics', express.static(__dirname));
 // Serve admin panel
 app.use('/admin', express.static(path.join(__dirname, 'admin')));
 // Serve uploaded files from uploads folder
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Default route -> logistics/index.html
+// Default route -> index.html
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'logistics', 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Avoid favicon 404 noise in the browser console

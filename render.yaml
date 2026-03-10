@@ -2,8 +2,8 @@ services:
   - type: web
     name: logistic-web
     runtime: node
-    buildCommand: npm install
-    startCommand: npm start
+    buildCommand: cd logistics && npm install
+    startCommand: cd logistics && npm start
     envVars:
       - key: NODE_ENV
         value: production
