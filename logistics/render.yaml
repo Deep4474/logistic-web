@@ -19,5 +19,6 @@ services:
         value: apikey
       - key: SMTP_PASS
         value: your_sendgrid_api_key
+        value: your_sendgrid_api_key
       - key: EMAIL_FROM
         value: SwiftLogix <noreply@yourdomain.com>
