@@ -371,9 +371,9 @@ async function sendOrderEmail(order) {
     `;
 
     if (resendClient) {
-      // Use Resend with Gmail as backup sender
+      // Use Resend with Netlify domain
       const { data, error } = await resendClient.emails.send({
-        from: 'SwiftLogix <ayomideoluniyi49@gmail.com>',
+        from: 'SwiftLogix <noreply@swiflogix.netlify.app>',
         to: [order.email],
         subject: `We received your ${order.serviceLabel || 'SwiftLogix'} order`,
         html: htmlBody,
@@ -412,7 +412,7 @@ Please keep this code safe and provide it to the rider when they arrive.`;
     if (resendClient) {
       // Use Resend
       const { data, error } = await resendClient.emails.send({
-        from: 'SwiftLogix <ayomideoluniyi49@gmail.com>',
+        from: 'SwiftLogix <noreply@swiflogix.netlify.app>',
         to: [order.receiverEmail],
         subject: 'SwiftLogix delivery code',
         html: htmlBody,
@@ -480,7 +480,7 @@ async function sendOrderStatusEmail(order) {
     if (resendClient) {
       // Use Resend
       const { data, error } = await resendClient.emails.send({
-        from: 'SwiftLogix <ayomideoluniyi49@gmail.com>',
+        from: 'SwiftLogix <noreply@swiflogix.netlify.app>',
         to: [order.user_email],
         subject: `Your SwiftLogix order is now ${order.status}`,
         html: htmlBody,
@@ -578,9 +578,9 @@ async function sendWelcomeEmail(user) {
 
     let info;
     if (resendClient) {
-      // Use Resend with Gmail as backup sender
+      // Use Resend with Netlify domain
       const { data, error } = await resendClient.emails.send({
-        from: 'SwiftLogix <ayomideoluniyi49@gmail.com>',
+        from: 'SwiftLogix <noreply@swiflogix.netlify.app>',
         to: [user.email],
         subject: 'Welcome to SwiftLogix',
         html: htmlBody,
@@ -633,7 +633,7 @@ SwiftLogix Team
     if (resendClient) {
       // Use Resend
       const { data, error } = await resendClient.emails.send({
-        from: 'SwiftLogix <ayomideoluniyi49@gmail.com>',
+        from: 'SwiftLogix <noreply@swiflogix.netlify.app>',
         to: [shipment.user_email],
         subject: 'Your Package Has Been Delivered - SwiftLogix',
         text: textBody,
@@ -661,6 +661,52 @@ SwiftLogix Team
     }
   } catch (err) {
     console.error('Error sending delivery notification:', err);
+  }
+}
+
+// Send SMS notification when order is placed
+async function sendOrderSms(order) {
+  if (!twilioClient || !order.phone) {
+    if (!twilioClient) {
+      console.log('⚠️  Twilio not configured, SMS not sent for order');
+    }
+    return;
+  }
+  try {
+    const formattedPhone = order.phone.startsWith('+') ? order.phone : `+234${order.phone.replace(/^0/, '')}`;
+    const message = `Hi, your ${order.serviceLabel || 'SwiftLogix'} order has been received. Tracking ID: ${order.trackingId || order.tracking_id}. Follow delivery at our tracking page. -SwiftLogix`;
+    
+    const result = await sendSmsMessage(formattedPhone, message);
+    if (result.success) {
+      console.log('✅ Order SMS sent to', formattedPhone);
+    } else {
+      console.error('❌ Failed to send order SMS:', result.error);
+    }
+  } catch (err) {
+    console.error('Error sending order SMS:', err);
+  }
+}
+
+// Send SMS notification when order status is updated
+async function sendStatusUpdateSms(order) {
+  if (!twilioClient || !order.contact_phone) {
+    if (!twilioClient) {
+      console.log('⚠️  Twilio not configured, SMS not sent for status update');
+    }
+    return;
+  }
+  try {
+    const formattedPhone = order.contact_phone.startsWith('+') ? order.contact_phone : `+234${order.contact_phone.replace(/^0/, '')}`;
+    const message = `Your SwiftLogix order (${order.tracking_id}) status is now: ${order.status}. Tracking ID: ${order.tracking_id}. -SwiftLogix`;
+    
+    const result = await sendSmsMessage(formattedPhone, message);
+    if (result.success) {
+      console.log('✅ Status update SMS sent to', formattedPhone);
+    } else {
+      console.error('❌ Failed to send status SMS:', result.error);
+    }
+  } catch (err) {
+    console.error('Error sending status update SMS:', err);
   }
 }
 
@@ -765,6 +811,8 @@ app.post('/api/order', upload.single('photo'), async (req, res) => {
     if (fullOrder.receiverEmail && fullOrder.receiverCode) {
       sendEmailAsync(sendReceiverCodeEmail, fullOrder);
     }
+    // Send SMS in background (non-blocking)
+    sendEmailAsync(sendOrderSms, fullOrder);
 
     console.log('✓ Order processing complete for', fullOrder.email);
     return res.json({ ok: true, imageUrl, trackingId });
@@ -797,6 +845,8 @@ app.post('/api/order-status', async (req, res) => {
 
     // Send status email in background (non-blocking)
     sendEmailAsync(sendOrderStatusEmail, data);
+    // Send status SMS in background (non-blocking)
+    sendEmailAsync(sendStatusUpdateSms, data);
     return res.json({ ok: true });
   } catch (err) {
     console.error('Unexpected error in /api/order-status', err);
@@ -1006,6 +1056,19 @@ app.put('/api/shipments/:trackingNumber/status', async (req, res) => {
     // Send email notification if status is 'delivered'
     if (status === 'delivered' && shipment.user_email) {
       await sendDeliveryNotification(shipment);
+      // Also send SMS for delivery
+      if (shipment.sender_phone) {
+        sendEmailAsync(async () => {
+          const formattedPhone = shipment.sender_phone.startsWith('+') ? shipment.sender_phone : `+234${shipment.sender_phone.replace(/^0/, '')}`;
+          const message = `Your package has been delivered! Tracking: ${trackingNumber}. Thank you for choosing SwiftLogix! -SwiftLogix`;
+          const result = await sendSmsMessage(formattedPhone, message);
+          if (result.success) {
+            console.log('✅ Delivery SMS sent to', formattedPhone);
+          } else {
+            console.error('❌ Failed to send delivery SMS:', result.error);
+          }
+        });
+      }
     }
 
     return res.json({ ok: true });
