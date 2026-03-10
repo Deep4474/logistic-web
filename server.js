@@ -161,7 +161,6 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
   console.error('  Option 2 (Custom SMTP): SMTP_HOST, SMTP_USER, SMTP_PASS');
 }
 
-const USERS_FILE = path.join(__dirname, 'user.json');
 const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
 
 // Supabase storage bucket name for orders
@@ -186,28 +185,21 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-function appendUserToFile(user) {
-  try {
-    let existing = [];
-    if (fs.existsSync(USERS_FILE)) {
-      const raw = fs.readFileSync(USERS_FILE, 'utf8') || '[]';
-      existing = JSON.parse(raw);
-      if (!Array.isArray(existing)) existing = [];
-    }
-    existing.push(user);
-    fs.writeFileSync(USERS_FILE, JSON.stringify(existing, null, 2), 'utf8');
-  } catch (err) {
-    console.error('Error writing user.json', err);
-  }
-}
 
-function isUserRegistered(email) {
+async function isUserRegistered(email) {
+  if (!supabase) return false;
   try {
-    if (!fs.existsSync(USERS_FILE)) return false;
-    const raw = fs.readFileSync(USERS_FILE, 'utf8') || '[]';
-    const users = JSON.parse(raw);
-    if (!Array.isArray(users)) return false;
-    return users.some(user => user.email === email && user.type === 'register');
+    const { data, error } = await supabase
+      .from('logistics_users')
+      .select('email')
+      .eq('email', email)
+      .eq('event_type', 'register')
+      .limit(1);
+    if (error) {
+      console.error('Error checking user registration:', error);
+      return false;
+    }
+    return data && data.length > 0;
   } catch (err) {
     console.error('Error checking user registration:', err);
     return false;
@@ -456,8 +448,7 @@ async function sendWelcomeEmail(user) {
     const fromAddress =
       process.env.EMAIL_FROM ||
       process.env.FROM_EMAIL ||
-      process.env.SMTP_USER ||
-      process.env.EMAIL_USER;
+      `"SwiftLogix" <${process.env.EMAIL_USER}>`;
 
     console.log(`📧 Sending email from: ${fromAddress} to: ${user.email}`);
     const displayName = user.name || 'there';
@@ -569,17 +560,12 @@ app.post('/api/auth-event', async (req, res) => {
     type,
   };
 
-  // Save to local JSON file on register
-  if (type === 'register') {
-    appendUserToFile(fullUser);
-  }
-
   // Send to Supabase if configured
   if (supabase) {
     try {
       const { error } = await supabase.from('logistics_users').insert({
-        name: fullUser.name || null,
-        phone: fullUser.phone || null,
+        name: fullUser.name && fullUser.name.trim() ? fullUser.name.trim() : null,
+        phone: fullUser.phone && fullUser.phone.trim() ? fullUser.phone.trim() : null,
         email: fullUser.email,
         event_type: type,
         created_at: fullUser.createdAt,
@@ -625,7 +611,7 @@ app.post('/api/order', upload.single('photo'), async (req, res) => {
     }
 
     // Check if user is registered
-    if (!isUserRegistered(order.email)) {
+    if (!(await isUserRegistered(order.email))) {
       console.error('Order rejected - user not registered:', order.email);
       return res.status(403).json({ ok: false, message: 'You must register an account before placing an order. Please visit the registration page.' });
     }
