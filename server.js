@@ -605,7 +605,7 @@ async function sendWelcomeEmail(user) {
     // log full info so we can inspect what nodemailer/Resend returned
     console.log('✅ Welcome email sent successfully:', info);
   } catch (err) {
-    console.error('❌ Error sending welcome email:', err.message);
+    console.error('❌ Error sending welcome email:', err.message, err);
   }
 }
 
