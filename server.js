@@ -148,8 +148,8 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
   console.log('SMTP mailer initialised (Gmail)');
 }
 
-const USERS_FILE = path.join(__dirname, 'logistics', 'user.json');
-const UPLOADS_DIR = path.join(__dirname, 'uploads');
+const USERS_FILE = path.join(__dirname, 'user.json');
+const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
 
 // Supabase storage bucket name for orders
 const ORDERS_BUCKET = 'orders';
