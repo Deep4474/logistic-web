@@ -125,6 +125,14 @@ setTimeout(initializeStorageBucket, 500);
 
 // --- Mailer setup (configure SMTP in .env) ---
 let mailer = null;
+console.log('=== EMAIL CONFIGURATION CHECK ===');
+console.log('SMTP_HOST:', process.env.SMTP_HOST ? '✓ SET' : '✗ NOT SET');
+console.log('SMTP_USER:', process.env.SMTP_USER ? '✓ SET' : '✗ NOT SET');
+console.log('SMTP_PASS:', process.env.SMTP_PASS ? '✓ SET' : '✗ NOT SET');
+console.log('EMAIL_USER:', process.env.EMAIL_USER ? '✓ SET' : '✗ NOT SET');
+console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? '✓ SET' : '✗ NOT SET');
+console.log('====================================');
+
 // If generic SMTP vars are present, use them; otherwise fall back to Gmail-style EMAIL_USER/PASS
 if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
   mailer = nodemailer.createTransport({
@@ -136,7 +144,7 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
       pass: process.env.SMTP_PASS,
     },
   });
-  console.log('SMTP mailer initialised (custom host)');
+  console.log('✓ SMTP mailer initialised (custom host)');
 } else if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
   mailer = nodemailer.createTransport({
     service: 'gmail',
@@ -145,7 +153,12 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
       pass: process.env.EMAIL_PASS,
     },
   });
-  console.log('SMTP mailer initialised (Gmail)');
+  console.log('✓ SMTP mailer initialised (Gmail)');
+} else {
+  console.error('⚠️  EMAIL MAILER NOT CONFIGURED! Welcome emails will NOT be sent.');
+  console.error('To enable emails, set one of these in your environment variables:');
+  console.error('  Option 1 (Gmail): EMAIL_USER and EMAIL_PASS');
+  console.error('  Option 2 (Custom SMTP): SMTP_HOST, SMTP_USER, SMTP_PASS');
 }
 
 const USERS_FILE = path.join(__dirname, 'user.json');
@@ -427,7 +440,18 @@ async function sendOrderStatusEmail(order) {
 }
 
 async function sendWelcomeEmail(user) {
-  if (!mailer || !user.email) return;
+  console.log(`📧 sendWelcomeEmail called for: ${user.email}`);
+  
+  if (!user.email) {
+    console.error('❌ No email provided');
+    return;
+  }
+  
+  if (!mailer) {
+    console.error('❌ MAILER NOT CONFIGURED! Email will not be sent. Set EMAIL_USER/EMAIL_PASS or SMTP_HOST/SMTP_USER/SMTP_PASS in environment variables.');
+    return;
+  }
+  
   try {
     const fromAddress =
       process.env.EMAIL_FROM ||
@@ -435,6 +459,7 @@ async function sendWelcomeEmail(user) {
       process.env.SMTP_USER ||
       process.env.EMAIL_USER;
 
+    console.log(`📧 Sending email from: ${fromAddress} to: ${user.email}`);
     const displayName = user.name || 'there';
 
     const htmlBody = `
@@ -478,15 +503,17 @@ async function sendWelcomeEmail(user) {
       </div>
     `;
 
-    await mailer.sendMail({
+    const info = await mailer.sendMail({
       from: fromAddress,
       to: user.email,
       subject: 'Welcome to SwiftLogix',
       text: `Hi ${displayName},\n\nYour SwiftLogix account has been created successfully.\n\nYou can now log in and manage your logistics orders.\n\nThanks,\nSwiftLogix Team`,
       html: htmlBody,
     });
+    
+    console.log('✅ Welcome email sent successfully:', info.messageId);
   } catch (err) {
-    console.error('Error sending welcome email', err);
+    console.error('❌ Error sending welcome email:', err.message);
   }
 }
 
@@ -569,6 +596,7 @@ app.post('/api/auth-event', async (req, res) => {
 
   // Send welcome email on register
   if (type === 'register') {
+    console.log(`📨 Attempting to send welcome email to ${fullUser.email}...`);
     await sendWelcomeEmail(fullUser);
   }
 
@@ -1160,6 +1188,30 @@ app.post('/api/notifications', async (req, res) => {
   } catch (err) {
     console.error('Server error in /api/notifications POST:', err);
     return res.status(500).json({ ok: false, message: 'Server error' });
+  }
+});
+
+// Get all users from logistics_users table (for admin)
+app.get('/api/users', async (req, res) => {
+  if (!supabase) {
+    return res.status(500).json({ ok: false, message: 'Supabase not configured', users: [] });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('logistics_users')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching users from Supabase:', error);
+      return res.status(500).json({ ok: false, message: 'Failed to fetch users', users: [] });
+    }
+
+    return res.json({ ok: true, users: data || [] });
+  } catch (err) {
+    console.error('Server error in /api/users GET:', err);
+    return res.status(500).json({ ok: false, message: 'Server error', users: [] });
   }
 });
 
