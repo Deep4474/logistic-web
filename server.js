@@ -188,6 +188,19 @@ function appendUserToFile(user) {
   }
 }
 
+function isUserRegistered(email) {
+  try {
+    if (!fs.existsSync(USERS_FILE)) return false;
+    const raw = fs.readFileSync(USERS_FILE, 'utf8') || '[]';
+    const users = JSON.parse(raw);
+    if (!Array.isArray(users)) return false;
+    return users.some(user => user.email === email && user.type === 'register');
+  } catch (err) {
+    console.error('Error checking user registration:', err);
+    return false;
+  }
+}
+
 // Helper to push order into Supabase logistics_orders table
 async function saveOrderToSupabase(order) {
   if (!supabase) {
@@ -581,6 +594,12 @@ app.post('/api/order', upload.single('photo'), async (req, res) => {
     if (!order || !order.email || !order.serviceLabel) {
       console.error('Invalid order data - missing required fields:', { email: order?.email, serviceLabel: order?.serviceLabel });
       return res.status(400).json({ ok: false, message: 'Invalid order data - email and serviceLabel required' });
+    }
+
+    // Check if user is registered
+    if (!isUserRegistered(order.email)) {
+      console.error('Order rejected - user not registered:', order.email);
+      return res.status(403).json({ ok: false, message: 'You must register an account before placing an order. Please visit the registration page.' });
     }
 
     let imageUrl = null;
