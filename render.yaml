@@ -1,23 +1,48 @@
 services:
   - type: web
-    name: logistic-web
+    name: swiftlogix-logistics
     runtime: node
-    buildCommand: cd logistics && npm install
-    startCommand: cd logistics && npm start
+    buildCommand: npm install
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: 3000
+      
+      # Supabase Configuration
       - key: SUPABASE_URL
-        value: your_supabase_project_url
-      - key: SUPABASE_ANON_KEY
-        value: your_supabase_anon_key
-      - key: SMTP_HOST
-        value: smtp.sendgrid.net
-      - key: SMTP_PORT
-        value: 587
-      - key: SMTP_USER
-        value: apikey
-      - key: SMTP_PASS
-        value: your_sendgrid_api_key
+        fromDatabase:
+          name: supabase_url
+      - key: SUPABASE_KEY
+        fromDatabase:
+          name: supabase_key
+      
+      # Gmail Email Settings
+      - key: EMAIL_USER
+        fromDatabase:
+          name: email_user
+      - key: EMAIL_PASS
+        fromDatabase:
+          name: email_pass
       - key: EMAIL_FROM
-        value: SwiftLogix <noreply@yourdomain.com>
+        value: "SwiftLogix <no-reply@swiftlogix.com>"
+      
+      # Twilio SMS Settings
+      - key: TWILIO_ACCOUNT_SID
+        fromDatabase:
+          name: twilio_account_sid
+      - key: TWILIO_AUTH_TOKEN
+        fromDatabase:
+          name: twilio_auth_token
+      - key: TWILIO_VERIFY_SERVICE_SID
+        fromDatabase:
+          name: twilio_verify_service_sid
+      - key: TWILIO_PHONE_NUMBER
+        fromDatabase:
+          name: twilio_phone_number
+      
+      # Resend Email Settings
+      - key: RESEND_API_KEY
+        fromDatabase:
+          name: resend_api_key
