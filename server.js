@@ -1,11 +1,16 @@
-const express = require('express');
-const path = require('path');
-const fs = require('fs');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const { createClient } = require('@supabase/supabase-js');
-const nodemailer = require('nodemailer');
-const multer = require('multer');
+import express from 'express';
+import path from 'path';
+import fs from 'fs';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { createClient } from '@supabase/supabase-js';
+import nodemailer from 'nodemailer';
+import multer from 'multer';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Load environment variables from .env file
 dotenv.config();
