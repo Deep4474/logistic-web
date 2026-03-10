@@ -27,96 +27,88 @@
         </div>
     </header>
 
-    <main class="section section-alt">
-        <div class="auth-wrapper">
-            <div class="section-header">
-                <h2>Access your SwiftLogix account</h2>
-                <p>Register once and use the same details for express, freight and warehousing orders.</p>
-            </div>
+    <main>
+        <section class="auth-section">
+            <div class="container">
+                <div class="auth-wrapper">
+                    <div class="section-header">
+                        <h1>Access your SwiftLogix account</h1>
+                        <p>Manage your logistics orders, track shipments, and get personalized service.</p>
+                    </div>
 
-            <!-- Profile card (shown when user is already logged in) -->
-            <section id="profileCard" class="profile-card hidden">
-                <header class="profile-header">
-                    <div class="profile-avatar" id="profileAvatarText">U</div>
-                    <div>
-                        <h3 id="profileName">Your name</h3>
-                        <p id="profileEmail">you@example.com</p>
+                    <div class="auth-tabs">
+                        <button id="tab-login" class="auth-tab active">Login</button>
+                        <button id="tab-register" class="auth-tab">Register</button>
                     </div>
-                </header>
-                <dl class="profile-list">
-                    <div class="profile-row">
-                        <dt>Full name</dt>
-                        <dd id="profileNameDetail">—</dd>
-                    </div>
-                    <div class="profile-row">
-                        <dt>Email</dt>
-                        <dd id="profileEmailDetail">—</dd>
-                    </div>
-                    <div class="profile-row">
-                        <dt>Phone</dt>
-                        <dd id="profilePhoneDetail">—</dd>
-                    </div>
-                </dl>
-                <p class="profile-hint">Use this account for all SwiftLogix logistics services. To switch account, log out from the user menu.</p>
-                <button id="switchAccountBtn" class="btn btn-secondary btn-full" type="button">Switch Account</button>
-            </section>
 
-            <div class="auth-tabs">
-                <button id="tab-login" class="auth-tab active" type="button">Login</button>
-                <button id="tab-register" class="auth-tab" type="button">Register</button>
-            </div>
-
-            <div class="auth-layout">
-                <form class="contact-form" id="loginForm">
-                    <div class="field">
-                        <label for="login-email">Email</label>
-                        <input type="email" id="login-email" placeholder="you@example.com" required>
-                    </div>
-                    <div class="field">
-                        <label for="login-password">Password</label>
-                        <input type="password" id="login-password" placeholder="Enter your password" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-full">Login</button>
-                    <p id="loginStatus" class="quote-result" aria-live="polite"></p>
-                </form>
-
-                <form class="contact-form hidden" id="registerForm">
-                    <div class="field-row">
-                        <div class="field">
-                            <label for="reg-name">Full name</label>
-                            <input type="text" id="reg-name" placeholder="Jane Doe" required>
+                    <form id="loginForm" class="auth-form">
+                        <div class="form-group">
+                            <label for="login-email">Email</label>
+                            <input type="email" id="login-email" required>
                         </div>
-                        <div class="field">
-                            <label for="reg-phone">Phone number</label>
-                            <input type="tel" id="reg-phone" placeholder="+234..." required>
+                        <div class="form-group">
+                            <label for="login-password">Password</label>
+                            <input type="password" id="login-password" required>
                         </div>
-                    </div>
-                    <div class="field">
-                        <label for="reg-email">Email</label>
-                        <input type="email" id="reg-email" placeholder="you@example.com" required>
-                    </div>
-                    <div class="field-row">
-                        <div class="field">
+                        <button type="submit" class="btn btn-primary">Login</button>
+                        <div id="loginStatus" class="status-message"></div>
+                    </form>
+
+                    <form id="registerForm" class="auth-form hidden">
+                        <div class="form-group">
+                            <label for="reg-name">Full Name</label>
+                            <input type="text" id="reg-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="reg-phone">Phone Number</label>
+                            <input type="tel" id="reg-phone" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="reg-email">Email</label>
+                            <input type="email" id="reg-email" required>
+                        </div>
+                        <div class="form-group">
                             <label for="reg-password">Password</label>
-                            <input type="password" id="reg-password" placeholder="Choose a password" required>
+                            <input type="password" id="reg-password" required>
                         </div>
-                        <div class="field">
-                            <label for="reg-password2">Confirm password</label>
-                            <input type="password" id="reg-password2" placeholder="Repeat password" required>
+                        <div class="form-group">
+                            <label for="reg-password2">Confirm Password</label>
+                            <input type="password" id="reg-password2" required>
                         </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-full">Create account</button>
-                    <p id="registerStatus" class="quote-result" aria-live="polite"></p>
-                </form>
-            </div>
-        </div>
-    </main>
+                        <button type="submit" class="btn btn-primary">Register</button>
+                        <div id="registerStatus" class="status-message"></div>
+                    </form>
 
-    <footer class="site-footer">
-        <div class="footer-inner">
-            <p>&copy; <span id="year"></span> SwiftLogix Logistics. All rights reserved.</p>
-        </div>
-    </footer>
+                    <div id="profileCard" class="profile-card hidden">
+                        <div class="profile-header">
+                            <div class="profile-avatar">
+                                <span id="profileAvatarText">U</span>
+                            </div>
+                            <div class="profile-info">
+                                <h3 id="profileName">User</h3>
+                                <p id="profileEmail">user@example.com</p>
+                            </div>
+                        </div>
+                        <div class="profile-details">
+                            <div class="profile-detail">
+                                <label>Name:</label>
+                                <span id="profileNameDetail">—</span>
+                            </div>
+                            <div class="profile-detail">
+                                <label>Email:</label>
+                                <span id="profileEmailDetail">—</span>
+                            </div>
+                            <div class="profile-detail">
+                                <label>Phone:</label>
+                                <span id="profilePhoneDetail">—</span>
+                            </div>
+                        </div>
+                        <button id="switchAccountBtn" class="btn btn-secondary">Switch Account</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
 
     <script src="script.js"></script>
 </body>
