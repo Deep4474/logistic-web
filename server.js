@@ -22,9 +22,8 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from the current folder under /logistics
-// This matches the <base href="/logistics/"> in index.html
-app.use('/logistics', express.static(__dirname));
+// Serve static files from the current folder
+app.use(express.static(__dirname));
 // Serve admin panel
 app.use('/admin', express.static(path.join(__dirname, 'admin')));
 // Serve uploaded files from uploads folder
