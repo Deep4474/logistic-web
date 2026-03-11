@@ -8,6 +8,7 @@ import multer from 'multer';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import twilio from 'twilio';
+import nodemailer from 'nodemailer';
 import { sendSmsVerification, verifySmsCode, sendSmsMessage } from './sms-utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -153,7 +154,7 @@ async function initializeStorageBucket() {
 // Initialize bucket check when server starts
 setTimeout(initializeStorageBucket, 500);
 
-// --- Email setup (using Resend) ---
+// --- Email setup (using Resend or Gmail SMTP) ---
 let emailProvider = null;
 
 if (process.env.RESEND_API_KEY) {
@@ -164,8 +165,40 @@ if (process.env.RESEND_API_KEY) {
   } catch (err) {
     console.error('Failed to initialize Resend:', err.message);
   }
+} else if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+  try {
+    // Fall back to Gmail SMTP using Nodemailer
+    emailProvider = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+    console.log('✓ Gmail SMTP email provider initialized');
+  } catch (err) {
+    console.error('Failed to initialize Gmail SMTP:', err.message);
+  }
 } else {
-  console.warn('⚠️  RESEND_API_KEY not set - emails will NOT be sent');
+  console.warn('⚠️  No email provider configured - emails will NOT be sent');
+}
+
+// Helper: Send emails via either Resend or Gmail SMTP
+async function sendEmailViaProvider(from, to, subject, html) {
+  if (!emailProvider) {
+    throw new Error('Email provider not configured');
+  }
+
+  // Check if using Resend (has .emails.send method)
+  if (emailProvider.emails && typeof emailProvider.emails.send === 'function') {
+    return await emailProvider.emails.send({ from, to, subject, html });
+  }
+  // Otherwise using Gmail/Nodemailer (has .sendMail method)
+  else if (typeof emailProvider.sendMail === 'function') {
+    return await emailProvider.sendMail({ from, to, subject, html });
+  }
+  
+  throw new Error('Unknown email provider');
 }
 
 // Helper: Send emails in background without blocking the response
@@ -372,13 +405,13 @@ async function sendOrderEmail(order) {
       </div>
     `;
 
-      const response = await emailProvider.emails.send({
-        from: fromAddress,
-        to: order.email,
-        subject: `We received your ${order.serviceLabel || 'SwiftLogix'} order`,
-        html: htmlBody,
-      });
-      console.log('✅ Order email sent via Resend', response.id);
+      const response = await sendEmailViaProvider(
+        fromAddress,
+        order.email,
+        `We received your ${order.serviceLabel || 'SwiftLogix'} order`,
+        htmlBody
+      );
+      console.log('✅ Order email sent', response.id || response.messageId || response);
   } catch (err) {
     console.error('Error sending order email', err);
   }
@@ -397,18 +430,18 @@ Your verification code is: ${order.receiverCode}\n
 Please keep this code safe and provide it to the rider when they arrive.`;
     const htmlBody = `<p>You have been listed as the receiver for a SwiftLogix shipment.</p><p>Your verification code is <strong>${order.receiverCode}</strong>.</p><p>Please keep this code safe and provide it to the rider when they arrive.</p>`;
 
-    // Use nodemailer only (ensure from matches authenticated user)
+    // Use matched from address
     const fromAddress =
       (process.env.EMAIL_FROM && process.env.EMAIL_FROM.includes(process.env.EMAIL_USER)
         ? process.env.EMAIL_FROM
         : process.env.EMAIL_USER);
-    const response = await emailProvider.emails.send({
-      from: fromAddress,
-      to: order.receiverEmail,
-      subject: 'SwiftLogix delivery code',
-      html: htmlBody,
-    });
-    console.log('✅ Receiver code email sent via Resend', response.id);
+    const response = await sendEmailViaProvider(
+      fromAddress,
+      order.receiverEmail,
+      'SwiftLogix delivery code',
+      htmlBody
+    );
+    console.log('✅ Receiver code email sent', response.id || response.messageId || response);
   } catch (err) {
     console.error('Error sending receiver code email', err);
   }
@@ -460,15 +493,15 @@ async function sendOrderStatusEmail(order) {
       (process.env.EMAIL_FROM && process.env.EMAIL_FROM.includes(process.env.EMAIL_USER)
         ? process.env.EMAIL_FROM
         : process.env.EMAIL_USER) ||
-      `"SwiftLogix" <${process.env.EMAIL_USER || 'no-reply@example.com'}>`;
+      `SwiftLogix <${process.env.EMAIL_USER || 'no-reply@example.com'}>`;
     
-    const response = await emailProvider.emails.send({
-      from: fromAddress,
-      to: order.user_email,
-      subject: `Your SwiftLogix order is now ${order.status}`,
-      html: htmlBody,
-    });
-    console.log('✅ Order status email sent via Resend', response.id);
+    const response = await sendEmailViaProvider(
+      fromAddress,
+      order.user_email,
+      `Your SwiftLogix order is now ${order.status}`,
+      htmlBody
+    );
+    console.log('✅ Order status email sent', response.id || response.messageId || response);
   } catch (err) {
     console.error('Error sending order status email', err);
   }
@@ -540,17 +573,14 @@ async function sendWelcomeEmail(user) {
       </div>
     `;
 
-    const response = await emailProvider.emails.send({
-      from: fromAddress,
-      to: user.email,
-      subject: 'Welcome to SwiftLogix',
-      html: htmlBody,
-    });
-    // log recipient and provider response; some Resend plans don't return an `id` field
+    const response = await sendEmailViaProvider(
+      fromAddress,
+      user.email,
+      'Welcome to SwiftLogix',
+      htmlBody
+    );
+    
     console.log('✅ Welcome email sent to', user.email, 'response:', response);
-    if (!response || !response.id) {
-      console.warn('⚠️  Resend response did not include an id (this is expected on some plans)');
-    }
 
   } catch (err) {
     console.error('❌ Error sending welcome email:', err.message, err);
@@ -589,13 +619,13 @@ SwiftLogix Team
         ? process.env.EMAIL_FROM
         : process.env.EMAIL_USER);
     
-    const response = await emailProvider.emails.send({
-      from: fromAddress,
-      to: shipment.user_email,
-      subject: 'Your Package Has Been Delivered - SwiftLogix',
-      html: textBody.replace(/\n/g, '<br/>'),
-    });
-    console.log('✅ Delivery notification sent via Resend', response.id);
+    const response = await sendEmailViaProvider(
+      fromAddress,
+      shipment.user_email,
+      'Your Package Has Been Delivered - SwiftLogix',
+      textBody.replace(/\n/g, '<br/>')
+    );
+    console.log('✅ Delivery notification sent', response.id || response.messageId || response);
   } catch (err) {
     console.error('Error sending delivery notification:', err);
   }
