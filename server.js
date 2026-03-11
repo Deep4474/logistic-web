@@ -546,7 +546,11 @@ async function sendWelcomeEmail(user) {
       subject: 'Welcome to SwiftLogix',
       html: htmlBody,
     });
-    console.log('✅ Welcome email sent:', response.id);
+    // log recipient and provider response; some Resend plans don't return an `id` field
+    console.log('✅ Welcome email sent to', user.email, 'response:', response);
+    if (!response || !response.id) {
+      console.warn('⚠️  Resend response did not include an id (this is expected on some plans)');
+    }
 
   } catch (err) {
     console.error('❌ Error sending welcome email:', err.message, err);
