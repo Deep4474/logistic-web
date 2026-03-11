@@ -44,10 +44,9 @@ app.get('/api/debug-email', async (req, res) => {
   }
 
   const to = process.env.EMAIL_USER || '';
-  const from =
-    (process.env.EMAIL_FROM && process.env.EMAIL_FROM.includes(process.env.EMAIL_USER)
-      ? process.env.EMAIL_FROM
-      : process.env.EMAIL_USER) || to;
+  const from = process.env.EMAIL_FROM
+    ? process.env.EMAIL_FROM
+    : process.env.EMAIL_USER || to;
 
   try {
     const response = await emailProvider.emails.send({
@@ -448,11 +447,8 @@ Your verification code is: ${order.receiverCode}\n
 Please keep this code safe and provide it to the rider when they arrive.`;
     const htmlBody = `<p>You have been listed as the receiver for a SwiftLogix shipment.</p><p>Your verification code is <strong>${order.receiverCode}</strong>.</p><p>Please keep this code safe and provide it to the rider when they arrive.</p>`;
 
-    // Use matched from address
-    const fromAddress =
-      (process.env.EMAIL_FROM && process.env.EMAIL_FROM.includes(process.env.EMAIL_USER)
-        ? process.env.EMAIL_FROM
-        : process.env.EMAIL_USER);
+    // Determine proper from address (allow custom EMAIL_FROM)
+    const fromAddress = process.env.EMAIL_FROM || process.env.EMAIL_USER;
     const response = await sendEmailViaProvider(
       fromAddress,
       order.receiverEmail,
@@ -507,11 +503,9 @@ async function sendOrderStatusEmail(order) {
       </div>
     `;
 
-    const fromAddress =
-      (process.env.EMAIL_FROM && process.env.EMAIL_FROM.includes(process.env.EMAIL_USER)
-        ? process.env.EMAIL_FROM
-        : process.env.EMAIL_USER) ||
-      `SwiftLogix <${process.env.EMAIL_USER || 'no-reply@example.com'}>`;
+    const fromAddress = process.env.EMAIL_FROM
+      ? process.env.EMAIL_FROM
+      : `SwiftLogix <${process.env.EMAIL_USER || 'no-reply@example.com'}>`;
     
     const response = await sendEmailViaProvider(
       fromAddress,
@@ -539,13 +533,10 @@ async function sendWelcomeEmail(user) {
   }
   
   try {
-    // always use a Gmail address that matches the authenticated account
-  // `EMAIL_FROM` is optional but if present it should still use the same user
-  const fromAddress =
-    (process.env.EMAIL_FROM && process.env.EMAIL_FROM.includes(process.env.EMAIL_USER)
-      ? process.env.EMAIL_FROM
-      : process.env.EMAIL_USER) ||
-    `"SwiftLogix" <${process.env.EMAIL_USER || 'no-reply@example.com'}>`;
+    // Determine from address; preferrably from EMAIL_FROM, otherwise fallback
+    const fromAddress =
+      process.env.EMAIL_FROM ||
+      `"SwiftLogix" <${process.env.EMAIL_USER || 'no-reply@example.com'}>`;
 
     console.log(`📧 Sending email from: ${fromAddress} to: ${user.email}`);
     const displayName = user.name || 'there';
@@ -637,11 +628,8 @@ Best regards,
 SwiftLogix Team
     `;
 
-    // Use nodemailer only (force from to match user)
-    const fromAddress =
-      (process.env.EMAIL_FROM && process.env.EMAIL_FROM.includes(process.env.EMAIL_USER)
-        ? process.env.EMAIL_FROM
-        : process.env.EMAIL_USER);
+    // Determine from address for delivery notification
+    const fromAddress = process.env.EMAIL_FROM || process.env.EMAIL_USER;
     
     const response = await sendEmailViaProvider(
       fromAddress,
