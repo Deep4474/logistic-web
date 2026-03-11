@@ -176,6 +176,15 @@ if (process.env.RESEND_API_KEY) {
       },
     });
     console.log('✓ Gmail SMTP email provider initialized');
+    
+    // Verify connection
+    emailProvider.verify((err, success) => {
+      if (err) {
+        console.error('❌ Gmail SMTP verification failed:', err.message);
+      } else {
+        console.log('✓ Gmail SMTP connection verified successfully');
+      }
+    });
   } catch (err) {
     console.error('Failed to initialize Gmail SMTP:', err.message);
   }
@@ -189,16 +198,25 @@ async function sendEmailViaProvider(from, to, subject, html) {
     throw new Error('Email provider not configured');
   }
 
-  // Check if using Resend (has .emails.send method)
-  if (emailProvider.emails && typeof emailProvider.emails.send === 'function') {
-    return await emailProvider.emails.send({ from, to, subject, html });
+  try {
+    // Check if using Resend (has .emails.send method)
+    if (emailProvider.emails && typeof emailProvider.emails.send === 'function') {
+      console.log('📧 Using Resend provider');
+      return await emailProvider.emails.send({ from, to, subject, html });
+    }
+    // Otherwise using Gmail/Nodemailer (has .sendMail method)
+    else if (typeof emailProvider.sendMail === 'function') {
+      console.log('📧 Using Gmail SMTP provider');
+      const result = await emailProvider.sendMail({ from, to, subject, html });
+      console.log('📧 Nodemailer result:', result);
+      return result;
+    }
+    
+    throw new Error('Unknown email provider - no send method found');
+  } catch (err) {
+    console.error('📧 Email send failed in sendEmailViaProvider:', err.message, err.code);
+    throw err;
   }
-  // Otherwise using Gmail/Nodemailer (has .sendMail method)
-  else if (typeof emailProvider.sendMail === 'function') {
-    return await emailProvider.sendMail({ from, to, subject, html });
-  }
-  
-  throw new Error('Unknown email provider');
 }
 
 // Helper: Send emails in background without blocking the response
@@ -583,7 +601,13 @@ async function sendWelcomeEmail(user) {
     console.log('✅ Welcome email sent to', user.email, 'response:', response);
 
   } catch (err) {
-    console.error('❌ Error sending welcome email:', err.message, err);
+    console.error('❌ Error sending welcome email:', {
+      message: err.message,
+      code: err.code,
+      command: err.command,
+      response: err.response,
+      stack: err.stack
+    });
   }
 }
 
