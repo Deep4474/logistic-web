@@ -36,6 +36,35 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'auth.html'));
 });
 
+// --- debug utilities ------------------------------------------------------
+// quick endpoint to verify mailer configuration and deliverability
+app.get('/api/debug-email', async (req, res) => {
+  if (!mailer) {
+    return res.status(500).json({ ok: false, message: 'mailer not configured' });
+  }
+
+  const to = process.env.EMAIL_USER;
+  const from =
+    (process.env.EMAIL_FROM && process.env.EMAIL_FROM.includes(process.env.EMAIL_USER)
+      ? process.env.EMAIL_FROM
+      : process.env.EMAIL_USER);
+
+  try {
+    const info = await mailer.sendMail({
+      from,
+      to,
+      subject: 'SwiftLogix debug message',
+      text: 'This is a delivery test from your Render service.',
+    });
+    console.log('🔧 debug-email sent', info);
+    res.json({ ok: true, info });
+  } catch (err) {
+    console.error('🔧 debug-email failed', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+
 // Avoid favicon 404 noise in the browser console
 app.get('/favicon.ico', (req, res) => {
   res.status(204).end();
@@ -372,16 +401,19 @@ Your verification code is: ${order.receiverCode}\n
 Please keep this code safe and provide it to the rider when they arrive.`;
     const htmlBody = `<p>You have been listed as the receiver for a SwiftLogix shipment.</p><p>Your verification code is <strong>${order.receiverCode}</strong>.</p><p>Please keep this code safe and provide it to the rider when they arrive.</p>`;
 
-    // Use nodemailer only
-    const fromAddress = process.env.EMAIL_FROM || `${process.env.EMAIL_USER}`;
-    await mailer.sendMail({
+    // Use nodemailer only (ensure from matches authenticated user)
+    const fromAddress =
+      (process.env.EMAIL_FROM && process.env.EMAIL_FROM.includes(process.env.EMAIL_USER)
+        ? process.env.EMAIL_FROM
+        : process.env.EMAIL_USER);
+    const info = await mailer.sendMail({
       from: fromAddress,
       to: order.receiverEmail,
       subject: 'SwiftLogix delivery code',
       text: textBody,
       html: htmlBody,
     });
-    console.log('✅ Receiver code email sent via SMTP');
+    console.log('✅ Receiver code email sent via SMTP', info);
   } catch (err) {
     console.error('Error sending receiver code email', err);
   }
@@ -424,21 +456,20 @@ async function sendOrderStatusEmail(order) {
       </div>
     `;
 
-    // Use nodemailer only
+    // Use nodemailer only (force from to match user)
     const fromAddress =
-      process.env.EMAIL_FROM ||
-      process.env.FROM_EMAIL ||
-      process.env.SMTP_USER ||
-      process.env.EMAIL_USER;
+      (process.env.EMAIL_FROM && process.env.EMAIL_FROM.includes(process.env.EMAIL_USER)
+        ? process.env.EMAIL_FROM
+        : process.env.EMAIL_USER);
     
-    await mailer.sendMail({
+    const info = await mailer.sendMail({
       from: fromAddress,
       to: order.user_email,
       subject: `Your SwiftLogix order is now ${order.status}`,
       text: `Your ${order.service_label || 'SwiftLogix'} order status is now ${order.status}.\n\nRoute: ${order.route || 'Custom route'}\nSpeed: ${order.speed_label || ''}\n\nThanks,\nSwiftLogix Team`,
       html: htmlBody,
     });
-    console.log('✅ Order status email sent via SMTP');
+    console.log('✅ Order status email sent via SMTP', info);
   } catch (err) {
     console.error('Error sending order status email', err);
   }
@@ -458,10 +489,13 @@ async function sendWelcomeEmail(user) {
   }
   
   try {
-    const fromAddress =
-      process.env.EMAIL_FROM ||
-      process.env.FROM_EMAIL ||
-      `"SwiftLogix" <noreply@swiftlogix.com>`;
+    // always use a Gmail address that matches the authenticated account
+  // `EMAIL_FROM` is optional but if present it should still use the same user
+  const fromAddress =
+    (process.env.EMAIL_FROM && process.env.EMAIL_FROM.includes(process.env.EMAIL_USER)
+      ? process.env.EMAIL_FROM
+      : process.env.EMAIL_USER) ||
+    `"SwiftLogix" <${process.env.EMAIL_USER || 'no-reply@example.com'}>`;
 
     console.log(`📧 Sending email from: ${fromAddress} to: ${user.email}`);
     const displayName = user.name || 'there';
@@ -516,6 +550,7 @@ async function sendWelcomeEmail(user) {
       html: htmlBody,
     });
     console.log('✅ Welcome email sent successfully:', info);
+
   } catch (err) {
     console.error('❌ Error sending welcome email:', err.message, err);
   }
@@ -543,20 +578,19 @@ Best regards,
 SwiftLogix Team
     `;
 
-    // Use nodemailer only
+    // Use nodemailer only (force from to match user)
     const fromAddress =
-      process.env.EMAIL_FROM ||
-      process.env.FROM_EMAIL ||
-      process.env.SMTP_USER ||
-      process.env.EMAIL_USER;
+      (process.env.EMAIL_FROM && process.env.EMAIL_FROM.includes(process.env.EMAIL_USER)
+        ? process.env.EMAIL_FROM
+        : process.env.EMAIL_USER);
     
-    await mailer.sendMail({
+    const info = await mailer.sendMail({
       from: fromAddress,
       to: shipment.user_email,
       subject: 'Your Package Has Been Delivered - SwiftLogix',
       text: textBody,
     });
-    console.log('✅ Delivery notification sent via SMTP');
+    console.log('✅ Delivery notification sent via SMTP', info);
   } catch (err) {
     console.error('Error sending delivery notification:', err);
   }
